@@ -1,0 +1,84 @@
+name: Ticket status
+
+# Enforces the ticket workflow defined in .github/labels.json:
+# - A ticket has at most one status label. Applying one removes the others.
+# - Only the repo owner and the bots listed in "agents" may apply status labels.
+# - The owner can move tickets anywhere. Their label is the approval.
+# - Agents can only make the transitions listed in each status's "from",
+#   and can never apply a "human_only" label such as tests-approved.
+# A disallowed label is removed again, with a comment explaining why.
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ticket-status-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const cfg = JSON.parse(fs.readFileSync('.github/labels.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.issue.number;
+            const added = context.payload.label.name;
+            const sender = context.payload.sender;
+
+            const status = cfg.status.find(s => s.name === added);
+            if (!status) return;  // not a status label
+
+            const removeLabel = async name => {
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
+              } catch (err) {
+                if (err.status !== 404) throw err;  // already gone
+              }
+            };
+
+            // Read labels live: the event payload can be stale if several labels changed at once.
+            const current = (await github.rest.issues.listLabelsOnIssue({ owner, repo, issue_number }))
+              .data.map(l => l.name);
+            if (!current.includes(added)) return;  // removed again before we ran
+
+            const statusNames = cfg.status.map(s => s.name);
+            const previous = current.filter(n => statusNames.includes(n) && n !== added);
+
+            // Compare ids, not logins: ids survive account renames.
+            const isOwner = sender.id === context.payload.repository.owner.id;
+            const isAgent = sender.type === 'Bot' && cfg.agents.includes(sender.login);
+
+            if (!isOwner) {
+              const from = previous[0] ?? null;
+              let reason = null;
+              if (!isAgent) {
+                reason = `Only the repository owner can move tickets through the workflow.`;
+              } else if (status.human_only) {
+                reason = `\`${added}\` is an approval gate and can only be applied by the repository owner.`;
+              } else if (previous.length > 1 || !status.from.includes(from)) {
+                reason = `Automation can't move a ticket from \`${from ?? 'no status'}\` to \`${added}\`. ` +
+                         `Allowed from: ${status.from.map(f => `\`${f ?? 'no status'}\``).join(', ')}.`;
+              }
+              if (reason) {
+                await removeLabel(added);
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number,
+                  body: `Removed \`${added}\` applied by @${sender.login}. ${reason}`,
+                });
+                core.notice(reason);
+                return;
+              }
+            }
+
+            for (const name of previous) await removeLabel(name);
+            core.info(`#${issue_number}: ${previous.join(', ') || 'no status'} -> ${added} (by ${sender.login})`);

@@ -1,0 +1,38 @@
+name: Sync labels
+
+# Creates or updates the labels defined in .github/labels.json.
+# Labels not in that file are left alone.
+on:
+  push:
+    branches: [main]
+    paths: [".github/labels.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const cfg = JSON.parse(fs.readFileSync('.github/labels.json', 'utf8'));
+            const { owner, repo } = context.repo;
+
+            for (const { name, color, description } of [...cfg.status, ...cfg.other]) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+                await github.rest.issues.updateLabel({ owner, repo, name, color, description });
+                core.info(`updated ${name}`);
+              } catch (err) {
+                if (err.status !== 404) throw err;
+                await github.rest.issues.createLabel({ owner, repo, name, color, description });
+                core.info(`created ${name}`);
+              }
+            }

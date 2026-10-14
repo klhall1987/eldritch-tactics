@@ -1,0 +1,12 @@
+# Normalize line endings; shell scripts must stay LF or they break on Linux CI
+* text=auto eol=lf
+*.sh text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary

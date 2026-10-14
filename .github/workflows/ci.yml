@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  godot-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # kills a hung Godot instead of burning minutes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
+      - name: Unit tests
+        run: bash tools/run_tests.sh
+
+      - name: Smoke test
+        run: bash tools/smoke_test.sh

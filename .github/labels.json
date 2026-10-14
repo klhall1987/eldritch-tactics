@@ -1,0 +1,48 @@
+{
+  "_comment": "Single source of truth for labels. Synced by .github/workflows/labels.yml and enforced by .github/workflows/ticket-status.yml. Only the repo owner and the bots listed in 'agents' may apply status labels. The owner can move tickets freely. Agents are limited to the transitions in each status's 'from' (null = no status yet) and can never apply a 'human_only' label.",
+  "agents": [],
+  "status": [
+    {
+      "name": "needs-clarification",
+      "color": "d93f0b",
+      "description": "Ticket is ambiguous. Waiting on a human to answer questions.",
+      "from": [null, "tests-proposed", "tests-approved", "in-progress"],
+      "human_only": false
+    },
+    {
+      "name": "tests-proposed",
+      "color": "fbca04",
+      "description": "Tests are written and waiting for human review.",
+      "from": [null, "needs-clarification"],
+      "human_only": false
+    },
+    {
+      "name": "tests-approved",
+      "color": "0e8a16",
+      "description": "APPROVAL GATE: a human has approved the proposed tests.",
+      "from": ["tests-proposed"],
+      "human_only": true
+    },
+    {
+      "name": "in-progress",
+      "color": "1d76db",
+      "description": "Implementation underway against the approved tests.",
+      "from": ["tests-approved", "ready-for-review"],
+      "human_only": false
+    },
+    {
+      "name": "ready-for-review",
+      "color": "5319e7",
+      "description": "PR is open and checks pass. Waiting for human review.",
+      "from": ["in-progress"],
+      "human_only": false
+    }
+  ],
+  "other": [
+    {
+      "name": "feature",
+      "color": "c5def5",
+      "description": "One small, testable behavior."
+    }
+  ]
+}

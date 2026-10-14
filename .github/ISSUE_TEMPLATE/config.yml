@@ -1,0 +1,2 @@
+# Force every ticket through a template so tickets stay small and structured.
+blank_issues_enabled: false

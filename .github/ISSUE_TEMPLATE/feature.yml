@@ -1,0 +1,64 @@
+name: Feature
+description: One small, testable behavior. If you need "and", file two tickets.
+title: "[Feature] "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A ticket describes **exactly one behavior** that a unit test can check without anyone playing the game.
+        Once filed, the ticket moves through status labels (see `docs/WORKFLOW.md`).
+        Only the repository owner's tickets go through this process, and only the owner can apply **tests-approved**, the approval gate.
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavior
+      description: |
+        One sentence in the form "When <trigger>, <observable result>."
+        If it contains "and" or "also", split it into separate tickets.
+      placeholder: When the player touches a spike tile, they lose one life.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: |
+        1–5 checks, each one becoming a test. Use Given / When / Then.
+        More than 5 means the ticket is too big.
+      placeholder: |
+        - [ ] Given the player has 3 lives, when they touch a spike tile, then they have 2 lives.
+        - [ ] Given the player has 1 life, when they touch a spike tile, then the game-over signal fires.
+        - [ ] Given the player is standing on ground, then their lives do not change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What this ticket deliberately does NOT do. Anything listed here gets its own ticket.
+      placeholder: |
+        - Hurt animation or sound
+        - Invincibility frames after being hit
+        - Lives display in the HUD
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context (optional)
+      description: Relevant scenes, scripts, or assets (e.g. `tiles_dungeon`, `scripts/player.gd`).
+
+  - type: checkboxes
+    id: size_check
+    attributes:
+      label: Size check
+      options:
+        - label: This describes one behavior, not several.
+          required: true
+        - label: Every acceptance criterion can be checked by a unit test, without anyone playing.
+          required: true
