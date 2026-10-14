@@ -13,7 +13,8 @@
 # Set GITHUB_DRY_RUN=1 to print what `create` would send instead of sending it.
 set -euo pipefail
 
-REPO="klhall1987/eldritch-tactics"
+# owner/name of this repo, from the origin remote, so a fork needs no edits here.
+REPO="${REPO:-$(git remote get-url origin | sed -E 's#(\.git)?/?$##; s#.*github\.com[:/]##')}"
 API="https://api.github.com/repos/$REPO"
 
 if [ -z "${GH_TOKEN:-}" ]; then
