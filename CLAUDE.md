@@ -1,4 +1,4 @@
-# Lovecraft Iso 3D (Godot 4.7.2)
+# Eldritch Tactics (Godot 4.7.2)
 
 A 3D isometric game: a 3D world (`Node3D`) viewed through an orthographic camera at an
 isometric angle.

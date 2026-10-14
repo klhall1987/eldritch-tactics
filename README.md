@@ -1,4 +1,4 @@
-# Lovecraft Iso 3D (Godot 4.7.2)
+# Eldritch Tactics (Godot 4.7.2)
 
 A 3D isometric game, built ticket by ticket, with tests and a headless smoke run gating every
 change.
