@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash tools/run_tests.sh)",
+      "Bash(bash tools/smoke_test.sh)",
+      "Bash(bash tools/ticket_guard.sh:*)",
+      "Bash(bash tools/github.sh issue:*)",
+      "Bash(bash tools/github.sh comments:*)",
+      "Bash(curl -s https://api.github.com/repos/klhall1987/game-generator/issues/:*)",
+      "Bash(curl -s \"https://api.github.com/repos/klhall1987/game-generator/issues/:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh repo view:*)",
+      "Bash(git fetch:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin main:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-self-approval.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

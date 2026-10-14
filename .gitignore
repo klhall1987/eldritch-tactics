@@ -1,0 +1,20 @@
+# Godot import cache - rebuilt by `godot --import`, never commit
+.godot/
+
+# Scratch files the AI agent writes (comment and PR bodies)
+.agent/
+
+# Godot-specific ignores
+*.tmp
+/android/
+
+# Exports
+/export/
+/builds/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+
+# Per-machine Claude Code settings (e.g. GODOT path)
+.claude/settings.local.json
