@@ -12,6 +12,8 @@ isometric angle.
 - Both scripts need Godot. `GODOT` is set in `.claude/settings.local.json` on this machine.
 - There is no art yet. Until there is, tickets use simple placeholder meshes (boxes, capsules,
   planes) and colours; real models come later through their own tickets.
+- 3D models are generated in Blender from code: `bash tools/blender.sh <script>`.
+  `BLENDER` is set in `.claude/settings.local.json`. See `art/README.md`.
 - Before writing code, look at the existing code and tests and match their style.
 
 ## Ticket work
