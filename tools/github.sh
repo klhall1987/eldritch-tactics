@@ -13,7 +13,7 @@
 # Set GITHUB_DRY_RUN=1 to print what `create` would send instead of sending it.
 set -euo pipefail
 
-REPO="klhall1987/Lovecraft-Iso-3D"
+REPO="klhall1987/eldritch-tactics"
 API="https://api.github.com/repos/$REPO"
 
 if [ -z "${GH_TOKEN:-}" ]; then

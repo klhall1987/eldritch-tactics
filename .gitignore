@@ -18,3 +18,6 @@ Thumbs.db
 
 # Per-machine Claude Code settings (e.g. GODOT path)
 .claude/settings.local.json
+
+# Python bytecode from Blender model scripts
+__pycache__/

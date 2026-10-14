@@ -40,7 +40,7 @@ Otherwise:
 2. Post them: `bash tools/github.sh comment $ARGUMENTS .agent/comment.md`, then
    `bash tools/github.sh label $ARGUMENTS needs-clarification`.
 3. If posting fails (e.g. the token can't write issues), tell me to post `.agent/comment.md` on
-   https://github.com/klhall1987/Lovecraft-Iso-3D/issues/$ARGUMENTS and apply `needs-clarification`.
+   https://github.com/klhall1987/eldritch-tactics/issues/$ARGUMENTS and apply `needs-clarification`.
 4. Show me the questions, and tell me to answer on the issue (or edit the ticket), then run
    `/write-tests $ARGUMENTS` again.
 
