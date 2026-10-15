@@ -19,6 +19,23 @@ func _main() -> Node3D:
 	return main as Node3D
 
 
+# Instantiates the main scene inside a viewport the size of the project's default window, so
+# "in view" is judged at the game's real size rather than the tiny headless test viewport.
+func _main_in_game_window() -> Node3D:
+	var path: String = ProjectSettings.get_setting("application/run/main_scene")
+	var packed: PackedScene = load(path)
+	assert_not_null(packed, "the main scene (%s) loads" % path)
+	if packed == null:
+		return null
+	var window := SubViewport.new()
+	window.size = Vector2i(ProjectSettings.get_setting("display/window/size/viewport_width"),
+		ProjectSettings.get_setting("display/window/size/viewport_height"))
+	add_child_autofree(window)
+	var main := packed.instantiate()
+	window.add_child(main)
+	return main as Node3D
+
+
 # The detective and the cultist, or an empty array (after failing the test) if either is missing.
 func _characters(main: Node) -> Array[Node3D]:
 	var detective := main.find_child("Detective", true, false) as Node3D
@@ -148,8 +165,9 @@ func test_characters_play_idle():
 
 # Given the main scene running in the default window size, when each character's feet and head
 # are tested against the camera, then both points are inside the camera's view.
+# (Measured in a viewport of the default window size; changed by ticket #14.)
 func test_camera_sees_both_characters():
-	var main := _main()
+	var main := _main_in_game_window()
 	if main == null:
 		return
 	var characters := _characters(main)
