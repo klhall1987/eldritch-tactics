@@ -97,7 +97,7 @@ sweater = kit.textured_material("sweater_knit", kit.image_texture("sweater_knit"
 trousers = kit.textured_material("trousers_twill", kit.image_texture("trousers_twill", twill_texture(256)))
 boots = kit.textured_material("boots_leather", kit.image_texture("boots_leather", leather_texture(256, (0.1, 0.07, 0.05))),
                               roughness=0.5)
-skin = kit.material("skin", (0.74, 0.56, 0.45), roughness=0.7)
+skin = kit.material("skin", (0.62, 0.45, 0.36), roughness=0.7)  # matches the face texture
 chain = kit.material("chain_silver", (0.6, 0.6, 0.62), roughness=0.3)
 amulet = kit.material("amulet", (0.6, 0.85, 1.0), emission=(0.6, 0.85, 1.0))
 
@@ -162,7 +162,7 @@ def face_texture(size):
     image *= (1 - 0.35 * sockets - 0.12 * hollows)[..., None]
     # A day or two of dark stubble on the jaw, chin and upper lip, as fine speckle.
     speckle = rng.random((size, size)) < 0.45
-    stubble_area = np.clip((-0.03 - z) / 0.02, 0, 1) * (np.abs(np.sin(angle)) < 0.95)
+    stubble_area = np.clip((-0.045 - z) / 0.03, 0, 1) * (np.abs(np.sin(angle)) < 0.95)
     stubble_area = np.maximum(stubble_area, bump(z + 0.045, 0.008) * bump(across, 0.025) * facing)
     lips = bump(z + 0.056, 0.0055) * bump(across, 0.02) * facing
     stubble = stubble_area * (1 - lips) * (0.55 + 0.45 * speckle)
@@ -185,7 +185,8 @@ face_skin = kit.textured_material("face_skin", kit.image_texture("face_skin", fa
 eye_white = kit.material("eye_white", (0.86, 0.83, 0.78), roughness=0.2)
 eye_iris = kit.material("eye_iris", (0.36, 0.46, 0.56), roughness=0.2)
 eye_pupil = kit.material("eye_pupil", (0.02, 0.02, 0.02), roughness=0.2)
-hair = kit.material("hair_dark", (0.06, 0.045, 0.035), roughness=0.55)
+face_lid = kit.material("face_lid", (0.56, 0.4, 0.32), roughness=0.7)  # eyelids, a touch darker than the skin
+hair = kit.material("hair_dark", (0.06, 0.045, 0.035), roughness=0.85)
 
 
 # --- Shapes ------------------------------------------------------------------------------------------
@@ -226,7 +227,7 @@ parts.append(finish(kit.lathe(
 # Turtleneck: torso up to a rolled collar under the chin.
 parts.append(finish(kit.lathe(
     "sweater", [(0.14, 0.98), (0.155, 1.08), (0.165, 1.2), (0.185, 1.33), (0.19, 1.42), (0.17, 1.49),
-                (0.12, 1.53), (0.068, 1.56), (0.066, 1.6)],
+                (0.12, 1.53), (0.07, 1.57), (0.068, 1.635)],
     segments=24, mat=sweater, bone="chest", deform=oval(1.0, 0.68)), v_scale=1.5, u_repeat=2.0))
 
 # The duster: open at the front (a 34 degree gap centred on -Y), flaring below the waist to
@@ -257,7 +258,7 @@ for side, bone in ((1, "arm_l"), (-1, "arm_r")):
 
 # Neck and head. The neck tapers upward, so its narrowest point is just under the jaw.
 parts.append(finish(kit.lathe(
-    "neck", [(0.056, 1.55), (0.053, 1.6), (0.048, 1.645), (0.05, 1.68), (0.055, 1.72)],
+    "neck", [(0.062, 1.55), (0.06, 1.6), (0.056, 1.645), (0.058, 1.68), (0.06, 1.72)],
     segments=16, mat=skin, bone="head")))
 hx, hy, hz = HEAD
 head = kit.ball("head", HEAD_R, subdivisions=4, location=HEAD, scale=HEAD_SCALE, mat=face_skin, bone="head")
@@ -275,6 +276,11 @@ for side, name in ((1, "l"), (-1, "r")):
                                      scale=(1, 0.35, 1), mat=eye_iris, bone="head")))
     parts.append(kit.smooth(kit.ball(f"pupil_{name}", 0.0025, subdivisions=1, location=(ex, ey - 0.0122, ez),
                                      scale=(1, 0.3, 1), mat=eye_pupil, bone="head")))
+    # Heavy upper and lower lids over the eyeball, leaving a narrow, hard-eyed gap.
+    parts.append(kit.smooth(kit.ball(f"lid_upper_{name}", 0.0135, subdivisions=2, location=(ex, ey - 0.001, ez + 0.0102),
+                                     scale=(1.15, 1.0, 0.62), mat=face_lid, bone="head")))
+    parts.append(kit.smooth(kit.ball(f"lid_lower_{name}", 0.0135, subdivisions=2, location=(ex, ey - 0.001, ez - 0.0089),
+                                     scale=(1.1, 0.95, 0.45), mat=face_lid, bone="head")))
 
 
 def shape_hair(v):
@@ -294,8 +300,8 @@ parts.append(finish(kit.reshape(cap, shape_hair), levels=0))
 # Chunky locks: swept back over the top, and messy strands round the sides and back.
 for i in range(6):
     x = (i - 2.5) * 0.02
-    parts.append(finish(kit.ball(f"lock_top_{i}", 0.026, subdivisions=1, location=(hx + x, hy + 0.01, hz + 0.111),
-                                 rotation=(-12, 0, rng.uniform(-12, 12) - x * 200), scale=(0.45, 1.9, 0.32),
+    parts.append(finish(kit.ball(f"lock_top_{i}", 0.026, subdivisions=1, location=(hx + x, hy + 0.012, hz + 0.104),
+                                 rotation=(-6, 0, rng.uniform(-5, 5) - x * 120), scale=(0.45, 1.9, 0.28),
                                  mat=hair, bone="head"), levels=0))
 for i in range(10):
     a = math.radians(15 + i * 15)  # round the back, from his left to his right
