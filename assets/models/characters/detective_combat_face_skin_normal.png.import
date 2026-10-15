@@ -2,24 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rjlxl66mgy8o"
-path.s3tc="res://.godot/imported/detective_trousers_twill.png-45e6b797c4f65248eb30c8f5611cebd2.s3tc.ctex"
+uid="uid://bbb1wn1imywfm"
+path="res://.godot/imported/detective_combat_face_skin_normal.png-752b8e4ee9ebf1aa4619f41c1f552a61.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "72b07535738064efb3a450f52071aae8"
+"md5": "937d42de6c5d2bb1740ea7f6401e9b31"
 }
 
 [deps]
 
-source_file="res://assets/models/characters/detective_trousers_twill.png"
-dest_files=["res://.godot/imported/detective_trousers_twill.png-45e6b797c4f65248eb30c8f5611cebd2.s3tc.ctex"]
+source_file="res://assets/models/characters/detective_combat_face_skin_normal.png"
+dest_files=["res://.godot/imported/detective_combat_face_skin_normal.png-752b8e4ee9ebf1aa4619f41c1f552a61.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

@@ -205,8 +205,9 @@ def image_texture(name, rgb):
     return image
 
 
-def textured_material(name, image, roughness=0.8):
-    """A Principled material whose base colour is `image` (mapped by the mesh's UVs)."""
+def textured_material(name, image, roughness=0.8, normal_image=None, normal_strength=1.0):
+    """A Principled material whose base colour is `image` (mapped by the mesh's UVs), optionally
+    normal-mapped with `normal_image` (an OpenGL-style tangent-space normal map)."""
     import numpy as np
 
     mat = bpy.data.materials.new(name)
@@ -217,9 +218,159 @@ def textured_material(name, image, roughness=0.8):
     tex = nodes.new("ShaderNodeTexImage")
     tex.image = image
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if normal_image is not None:
+        normal_image.colorspace_settings.name = "Non-Color"
+        normal_tex = nodes.new("ShaderNodeTexImage")
+        normal_tex.image = normal_image
+        normal_map = nodes.new("ShaderNodeNormalMap")
+        normal_map.inputs["Strength"].default_value = normal_strength
+        links.new(normal_tex.outputs["Color"], normal_map.inputs["Color"])
+        links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
     average = np.array(image.pixels[:]).reshape(-1, 4)[:, :3].mean(axis=0)
     mat.diffuse_color = (*average, 1.0)  # what flat (MATERIAL) workbench previews show
     return mat
+
+
+def load_image(path):
+    """Loads an image file (e.g. a committed CC0 texture under art/base/) and packs it into the model."""
+    image = bpy.data.images.load(str(path))
+    image.pack()
+    return image
+
+
+def normal_map_from_height(name, height, strength=4.0):
+    """A packed OpenGL-style normal map computed from `height`, a numpy (h, w) array (0..1)."""
+    import numpy as np
+
+    dx = (np.roll(height, -1, axis=1) - np.roll(height, 1, axis=1)) * strength
+    dy = (np.roll(height, -1, axis=0) - np.roll(height, 1, axis=0)) * strength
+    normal = np.stack([-dx, -dy, np.ones_like(height)], axis=-1)
+    normal /= np.linalg.norm(normal, axis=-1, keepdims=True)
+    return image_texture(name, normal * 0.5 + 0.5)
+
+
+# --- Base meshes (realistic characters built on committed CC0 meshes; see art/base/README.md) -----
+
+
+def load_objects(blend_path, names):
+    """Appends the named objects from a .blend file into the scene and returns them, in order."""
+    with bpy.data.libraries.load(str(blend_path), link=False) as (source, target):
+        target.objects = [n for n in source.objects if n in names]
+    by_name = {o.name: o for o in target.objects}
+    for obj in target.objects:
+        bpy.context.scene.collection.objects.link(obj)
+    return [by_name[n] for n in names]
+
+
+def apply_modifiers(obj):
+    """Bakes every modifier on `obj` (as evaluated now, including any armature pose) into its mesh."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(depsgraph), preserve_all_data_layers=True,
+                                           depsgraph=depsgraph)
+    obj.modifiers.clear()
+    old = obj.data
+    obj.data = mesh
+    bpy.data.meshes.remove(old)
+    return obj
+
+
+def decimate(obj, ratio):
+    """Reduces `obj` to about `ratio` of its faces (collapse decimation), baked in now."""
+    if ratio < 1.0:
+        mod = obj.modifiers.new("Decimate", "DECIMATE")
+        mod.ratio = ratio
+        apply_modifiers(obj)
+    return obj
+
+
+def auto_weights(rig, obj):
+    """Parents `obj` to `rig` with automatic (bone heat) weights: smooth, weighted skinning."""
+    bpy.context.view_layer.update()
+    with bpy.context.temp_override(active_object=rig, object=rig, selected_objects=[obj, rig],
+                                   selected_editable_objects=[obj, rig]):
+        bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    return obj
+
+
+def transfer_weights(source, target):
+    """Gives `target` (e.g. clothes over a body) the vertex weights of the nearest part of `source`."""
+    for group in source.vertex_groups:
+        if group.name not in target.vertex_groups:
+            target.vertex_groups.new(name=group.name)
+    mod = target.modifiers.new("WeightTransfer", "DATA_TRANSFER")
+    mod.object = source
+    mod.use_vert_data = True
+    mod.data_types_verts = {"VGROUP_WEIGHTS"}
+    mod.vert_mapping = "POLYINTERP_NEAREST"
+    mod.layers_vgroup_select_src = "ALL"
+    mod.layers_vgroup_select_dst = "NAME"
+    apply_modifiers(target)
+    return target
+
+
+def shell(source, name, keep_face, offset, mat=None, smoothing=0, min_z=None, edge_smoothing=0):
+    """A copy of the faces of `source` for which keep_face(face_centre) is true, pushed out along
+    their normals by `offset` metres: clothes or hair that fit the body. `smoothing` passes relax
+    the copy first, so cloth drapes over muscle detail instead of clinging to it; `edge_smoothing`
+    passes relax only its open edges along themselves, so a hem or hairline cut along the body's
+    faces runs smooth instead of in steps; `min_z` keeps it from dipping below a height (e.g. boot
+    soles below the floor)."""
+    obj = source.copy()
+    obj.data = source.data.copy()
+    obj.name = obj.data.name = name
+    obj.modifiers.clear()
+    obj.vertex_groups.clear()
+    bpy.context.scene.collection.objects.link(obj)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if not keep_face(f.calc_center_median())], context="FACES")
+    for _ in range(smoothing):
+        bmesh.ops.smooth_vert(bm, verts=bm.verts, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    for _ in range(edge_smoothing):
+        moved = {}
+        for v in bm.verts:
+            ends = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+            if v.is_boundary and len(ends) == 2:
+                moved[v] = v.co * 0.5 + (ends[0].co + ends[1].co) * 0.25
+        for v, co in moved.items():
+            v.co = co
+    bm.normal_update()
+    for v in bm.verts:
+        v.co += v.normal * offset
+        if min_z is not None:
+            v.co.z = max(v.co.z, min_z)
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.materials.clear()
+    if mat:
+        obj.data.materials.append(mat)
+    return obj
+
+
+def bind_weighted(rig, body, weighted, rigid, name, keep_body_face=None):
+    """Joins a body and its parts into one mesh named `name`, skinned to `rig`: the body by automatic
+    weights, `weighted` parts (clothes, hair) by the weights of the body beneath them, and `rigid`
+    parts (made with `bone=`) to their single bone. If `keep_body_face(face_centre)` is given, body
+    faces it rejects (hidden under clothes) are removed after the clothes have taken their weights."""
+    auto_weights(rig, body)
+    for part in weighted:
+        transfer_weights(body, part)
+    if keep_body_face is not None:
+        bm = bmesh.new()
+        bm.from_mesh(body.data)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if not keep_body_face(f.calc_center_median())],
+                         context="FACES")
+        bm.to_mesh(body.data)
+        bm.free()
+    parts = [body] + list(weighted) + list(rigid)
+    for part in parts[1:]:
+        part.parent = None
+        part.data.transform(part.matrix_world)
+        part.matrix_world = Matrix.Identity(4)
+    with bpy.context.temp_override(active_object=body, selected_editable_objects=parts):
+        bpy.ops.object.join()
+    body.name = body.data.name = name
+    return body
 
 
 def armature(name, bones):
