@@ -128,7 +128,7 @@ func test_cultist_shroud_is_rounded_and_layered():
 	for surface in surfaces:
 		if _is(surface, CLOTHES_PREFIXES):
 			materials[surface.material] = true
-	assert_gte(materials.size(), 3, "the clothes use at least 3 materials (use %s)" % materials.keys())
+	assert_gte(materials.size(), 3, "the clothes use at least 3 materials (use %s)" % [materials.keys()])
 
 
 # Given the same clothes, when the lowest clothes point is found in each of 16 equal sectors around
