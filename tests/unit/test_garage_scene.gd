@@ -1,6 +1,7 @@
 extends GutTest
 # The garage in the main scene (ticket #9): the main scene shows the garage room through an
-# orthographic camera at the isometric angle (30 degrees down, 45 degrees around), lit from above.
+# orthographic camera at the isometric angle (30 degrees down, 45 degrees around). (Its light test
+# was removed by ticket #16: the scene has no sun.)
 
 const GARAGE_PATH := "res://assets/models/environments/garage.glb"
 const ANGLE_TOLERANCE := 1.0  # degrees
@@ -68,21 +69,3 @@ func test_main_scene_has_isometric_orthographic_camera():
 		"the camera is turned 45 degrees, looking from the +X/+Z corner towards -X/-Z")
 	var right := camera.global_transform.basis.x.normalized()
 	assert_almost_eq(right.y, 0.0, 0.02, "the camera isn't rolled")
-
-
-# Given the main scene, when it is instantiated, then it has at least one DirectionalLight3D that
-# lights the room from above (pointing downward).
-func test_main_scene_has_directional_light_from_above():
-	var main := _main()
-	if main == null:
-		return
-	var lights := main.find_children("*", "DirectionalLight3D", true, false)
-	assert_gt(lights.size(), 0, "the main scene has a DirectionalLight3D")
-	var lit_from_above := false
-	for light: DirectionalLight3D in lights:
-		var direction := -light.global_transform.basis.z.normalized()
-		# At least 30 degrees below the horizon, switched on and visible.
-		if direction.y <= -0.5 and light.light_energy > 0.0 and light.is_visible_in_tree():
-			lit_from_above = true
-	assert_true(lit_from_above,
-		"a visible DirectionalLight3D with energy points down at least 30 degrees")
