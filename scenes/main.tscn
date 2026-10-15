@@ -1,6 +1,32 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
+
+[sub_resource type="Environment" id="Environment_garage"]
+background_mode = 1
+background_color = Color(0.03, 0.03, 0.04, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.33, 0.4, 1)
+ambient_light_energy = 0.6
+glow_enabled = true
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_garage")
+
+[node name="Garage" parent="." instance=ExtResource("2_garage")]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.409576, 0.286788, 0, 0.573576, 0.819152, -0.5, -0.709406, 0.496732, 0, 6, 0)
+light_energy = 0.8
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 12.2474, 11.4, 12.2474)
+projection = 1
+current = true
+size = 10.5
+far = 100.0
