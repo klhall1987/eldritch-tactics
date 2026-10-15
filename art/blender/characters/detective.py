@@ -8,6 +8,9 @@ textures painted in code (no downloaded assets). A sculpted, PS2-era face with a
 
 Exports assets/models/characters/detective.glb with looping `idle` and `walk` clips (walk is in
 place; game code moves the node). Run: bash tools/blender.sh art/blender/characters/detective.py
+With `--combat` it builds the more detailed combat-screen version instead: one more subdivision
+level, a denser head and bigger textures, exported as detective_combat.glb:
+bash tools/blender.sh art/blender/characters/detective.py --combat
 
 Material names matter to the tests: the coat is `coat*`; `face*`, `skin*`, `eye*` and `hair*`
 aren't clothes; the amulet is the only emissive material.
@@ -23,6 +26,11 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import kit
 
 kit.reset()
+COMBAT = "--combat" in kit.script_args()  # the more detailed combat-screen model
+EXTRA_LEVELS = 1 if COMBAT else 0  # extra subdivision for smooth parts
+CLOTH_PX = 512 if COMBAT else 256  # clothing texture size
+COAT_PX = 1024 if COMBAT else 512
+FACE_PX = 1024 if COMBAT else 512
 rng = np.random.default_rng(11)  # fixed seed: the same textures every build
 
 
@@ -92,10 +100,10 @@ def twill_texture(size):
     return tint((0.11, 0.12, 0.15), weave * (0.8 + 0.4 * fbm(size, 6, 4)))
 
 
-coat = kit.textured_material("coat_leather", kit.image_texture("coat_leather", coat_texture(512)), roughness=0.6)
-sweater = kit.textured_material("sweater_knit", kit.image_texture("sweater_knit", knit_texture(256)))
-trousers = kit.textured_material("trousers_twill", kit.image_texture("trousers_twill", twill_texture(256)))
-boots = kit.textured_material("boots_leather", kit.image_texture("boots_leather", leather_texture(256, (0.1, 0.07, 0.05))),
+coat = kit.textured_material("coat_leather", kit.image_texture("coat_leather", coat_texture(COAT_PX)), roughness=0.6)
+sweater = kit.textured_material("sweater_knit", kit.image_texture("sweater_knit", knit_texture(CLOTH_PX)))
+trousers = kit.textured_material("trousers_twill", kit.image_texture("trousers_twill", twill_texture(CLOTH_PX)))
+boots = kit.textured_material("boots_leather", kit.image_texture("boots_leather", leather_texture(CLOTH_PX, (0.1, 0.07, 0.05))),
                               roughness=0.5)
 skin = kit.material("skin", (0.62, 0.45, 0.36), roughness=0.7)  # matches the face texture
 chain = kit.material("chain_silver", (0.6, 0.6, 0.62), roughness=0.3)
@@ -181,7 +189,7 @@ def face_texture(size):
     return image
 
 
-face_skin = kit.textured_material("face_skin", kit.image_texture("face_skin", face_texture(512)), roughness=0.65)
+face_skin = kit.textured_material("face_skin", kit.image_texture("face_skin", face_texture(FACE_PX)), roughness=0.65)
 eye_white = kit.material("eye_white", (0.86, 0.83, 0.78), roughness=0.2)
 eye_iris = kit.material("eye_iris", (0.36, 0.46, 0.56), roughness=0.2)
 eye_pupil = kit.material("eye_pupil", (0.02, 0.02, 0.02), roughness=0.2)
@@ -192,9 +200,10 @@ hair = kit.material("hair_dark", (0.06, 0.045, 0.035), roughness=0.85)
 # --- Shapes ------------------------------------------------------------------------------------------
 
 def finish(obj, levels=1, v_scale=1.0, u_repeat=1.0):
-    """Subdivides, UV-wraps and smooth-shades a part: the realistic-character treatment."""
+    """Subdivides, UV-wraps and smooth-shades a part: the realistic-character treatment. The combat
+    model gives each subdivided part one more level."""
     if levels:
-        kit.subdivide(obj, levels)
+        kit.subdivide(obj, levels + EXTRA_LEVELS)
     kit.uv_cylinder(obj, v_scale=v_scale, u_repeat=u_repeat)
     return kit.smooth(obj)
 
@@ -261,7 +270,7 @@ parts.append(finish(kit.lathe(
     "neck", [(0.062, 1.55), (0.06, 1.6), (0.056, 1.645), (0.058, 1.68), (0.06, 1.72)],
     segments=16, mat=skin, bone="head")))
 hx, hy, hz = HEAD
-head = kit.ball("head", HEAD_R, subdivisions=4, location=HEAD, scale=HEAD_SCALE, mat=face_skin, bone="head")
+head = kit.ball("head", HEAD_R, subdivisions=5 if COMBAT else 4, location=HEAD, scale=HEAD_SCALE, mat=face_skin, bone="head")
 kit.reshape(head, sculpt_head)
 kit.uv_cylinder(head, v_scale=1 / (2 * HEAD_R), v_offset=0.5)
 parts.append(kit.smooth(head))
@@ -346,4 +355,4 @@ kit.animate(rig, "walk", {
     30: {"leg_l": (18, 0, 0), "leg_r": (-18, 0, 0), "arm_l": (-18, 0, 0), "arm_r": (18, 0, 0), "spine": (0, 3, 0)},
 })
 
-kit.export(model_name="detective", kind="characters", preview_colors="TEXTURE")
+kit.export(model_name="detective_combat" if COMBAT else "detective", kind="characters", preview_colors="TEXTURE")
