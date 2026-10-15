@@ -7,6 +7,8 @@ bandage-wrapped forearms ending in long bony hands.
 
 Exports assets/models/characters/cultist.glb with looping `idle` and `walk` clips (walk is in
 place; game code moves the node). Run: bash tools/blender.sh art/blender/characters/cultist.py
+With `--combat` it builds the more detailed combat-screen version instead (three times the segments, finer
+balls and face, twice the torn strips), exported as cultist_combat.glb.
 
 Material names matter to the tests: clothes are `robe*`, `rag*` or `wrap*`; the face is `face*`
 and bare skin `skin*`; the eyes are the only emissive material.
@@ -21,6 +23,20 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import kit
 
 kit.reset()
+COMBAT = "--combat" in kit.script_args()  # the more detailed combat-screen model
+
+
+def S(segments):
+    """Segments round a shape: tripled for the combat model."""
+    return segments * 3 if COMBAT else segments
+
+
+def B(subdivisions):
+    """Ball subdivisions: one more for the combat model."""
+    return subdivisions + 1 if COMBAT else subdivisions
+
+
+STRIPS = 28 if COMBAT else 14  # torn strips hanging from the shroud
 rng = random.Random(7)  # fixed seed: the same rags every time the script runs
 
 robe = kit.material("robe", (0.32, 0.09, 0.06))
@@ -62,7 +78,7 @@ def ragged(base, hem):
     return deform
 
 
-def band(name, radius, height, location, rotation, mat, bone, segments=16):
+def band(name, radius, height, location, rotation, mat, bone, segments=S(16)):
     """A wrapped strip of cloth: a short, slightly bulging ring."""
     lip = height * 0.25
     profile = [(radius, 0.0), (radius + 0.004, lip), (radius + 0.004, height - lip), (radius, height)]
@@ -96,7 +112,7 @@ parts = []
 
 # --- Legs and feet: bony shins and wrapped feet, mostly hidden under the robes.
 for side, bone in ((1, "leg_l"), (-1, "leg_r")):
-    parts.append(kit.cone(f"shin_{bone}", radius=0.022, top_radius=0.028, depth=0.45, segments=8,
+    parts.append(kit.cone(f"shin_{bone}", radius=0.022, top_radius=0.028, depth=0.45, segments=S(8),
                           location=(side * 0.07, 0, 0.27), mat=skin, bone=bone))
     parts.append(kit.box(f"foot_{bone}", (0.07, 0.17, 0.06), location=(side * 0.07, -0.04, 0.03),
                          mat=wrap_feet, bone=bone))
@@ -105,7 +121,7 @@ for side, bone in ((1, "leg_l"), (-1, "leg_r")):
 parts.append(kit.lathe(
     "under_robe",
     [(0.205, 0.04), (0.2, 0.18), (0.185, 0.35), (0.17, 0.55), (0.16, 0.62), (0.155, 0.7), (0.15, 0.9), (0.15, 1.1)],
-    segments=28, mat=robe_under, bone="spine",
+    segments=S(28), mat=robe_under, bone="spine",
     deform=ragged(folds(0.03, 6), lambda a: 0.04 + 0.1 * (0.5 + 0.5 * math.cos(2 * a)) + rng.uniform(0, 0.025)),
 ))
 
@@ -114,13 +130,13 @@ parts.append(kit.lathe(
     "shroud",
     [(0.225, 0.3), (0.21, 0.42), (0.195, 0.55), (0.185, 0.62), (0.175, 0.7), (0.165, 0.85), (0.16, 1.0),
      (0.17, 1.12), (0.18, 1.22)],
-    segments=32, mat=robe, bone="spine",
+    segments=S(32), mat=robe, bone="spine",
     deform=ragged(folds(0.05, 9), lambda a: 0.3 - 0.1 * max(0.0, math.sin(a)) + rng.uniform(0, 0.07)),
 ))
 
 # Strips torn from the shroud's hem, hanging down.
-for i in range(14):
-    a = 2 * math.pi * (i + rng.uniform(-0.3, 0.3)) / 14
+for i in range(STRIPS):
+    a = 2 * math.pi * (i + rng.uniform(-0.3, 0.3)) / STRIPS
     bottom = rng.uniform(0.17, 0.26)
     top = 0.36
     parts.append(kit.box(f"strip_{i}", (rng.uniform(0.03, 0.05), 0.008, top - bottom),
@@ -131,7 +147,7 @@ for i in range(14):
 parts.append(kit.lathe(
     "capelet",
     [(0.215, 1.18), (0.215, 1.26), (0.19, 1.35), (0.14, 1.42), (0.06, 1.46)],
-    segments=30, mat=robe_cape, bone="chest",
+    segments=S(30), mat=robe_cape, bone="chest",
     deform=ragged(folds(0.04, 7, 1.0), lambda a: 1.18 + rng.uniform(-0.03, 0.05)),
 ))
 
@@ -141,14 +157,14 @@ for side, bone in ((1, "arm_l"), (-1, "arm_r")):
     parts.append(kit.lathe(
         f"sleeve_{bone}",
         [(0.058, 0.84), (0.062, 0.95), (0.06, 1.1), (0.055, 1.25), (0.06, 1.38)],
-        segments=16, location=(x, 0, 0), mat=robe, bone=bone,
+        segments=S(16), location=(x, 0, 0), mat=robe, bone=bone,
         deform=ragged(folds(0.04, 5), lambda a: 0.84 + rng.uniform(-0.02, 0.05)),
     ))
     for j in range(2):
         parts.append(kit.box(f"sleeve_strip_{bone}_{j}", (0.02, 0.006, rng.uniform(0.07, 0.11)),
                              location=(x + side * 0.03, (j - 0.5) * 0.06, 0.8),
                              rotation=(rng.uniform(-8, 8), 0, 90), mat=rags, bone=bone))
-    parts.append(kit.cone(f"forearm_{bone}", radius=0.026, depth=0.18, segments=10,
+    parts.append(kit.cone(f"forearm_{bone}", radius=0.026, depth=0.18, segments=S(10),
                           location=(x, 0, 0.79), mat=skin, bone=bone))
     for j, z in enumerate((0.715, 0.75, 0.785, 0.82)):
         parts.append(band(f"bandage_{bone}_{j}", 0.03, 0.032, (x, 0, z),
@@ -166,8 +182,8 @@ for side, bone in ((1, "arm_l"), (-1, "arm_r")):
 
 # --- Head: neck, sculpted face, sockets, glowing eyes, stitched mouth, wrappings, hood.
 hx, hy, hz = HEAD
-parts.append(kit.cone("neck", radius=0.03, depth=0.12, segments=10, location=(0, -0.01, 1.44), mat=skin, bone="head"))
-face = kit.ball("face", 0.1, subdivisions=3, location=HEAD, scale=(0.8, 0.85, 1.2), mat=face_skin, bone="head")
+parts.append(kit.cone("neck", radius=0.03, depth=0.12, segments=S(10), location=(0, -0.01, 1.44), mat=skin, bone="head"))
+face = kit.ball("face", 0.1, subdivisions=B(3), location=HEAD, scale=(0.8, 0.85, 1.2), mat=face_skin, bone="head")
 parts.append(kit.reshape(face, sculpt_face))
 for side, name in ((1, "l"), (-1, "r")):
     parts.append(kit.ball(f"socket_{name}", 0.02, location=(side * 0.033, -0.093, 1.58), scale=(1, 0.5, 0.85),
@@ -178,13 +194,13 @@ for j in range(5):
     parts.append(kit.box(f"stitch_{j}", (0.003, 0.006, 0.022), location=(-0.02 + 0.01 * j, -0.096, 1.5),
                          rotation=(0, rng.uniform(-15, 15), 0), mat=face_stitch, bone="head"))
 # Bandages: one diagonally across the jaw and a cheek (leaving the eyes), one across the brow.
-parts.append(band("face_wrap_jaw", 0.086, 0.03, (hx, hy, hz - 0.05), (0, 20, 0), wrap_face, "head", segments=28))
-parts.append(band("face_wrap_brow", 0.076, 0.026, (hx, hy, hz + 0.058), (-10, -8, 0), wrap_face, "head", segments=28))
+parts.append(band("face_wrap_jaw", 0.086, 0.03, (hx, hy, hz - 0.05), (0, 20, 0), wrap_face, "head", segments=S(28)))
+parts.append(band("face_wrap_brow", 0.076, 0.026, (hx, hy, hz + 0.058), (-10, -8, 0), wrap_face, "head", segments=S(28)))
 # Hood: a rounded shell open at the front (centred on -Y), pushed back to show the face.
 parts.append(kit.lathe(
     "hood",
     [(0.125, -0.13), (0.14, -0.04), (0.14, 0.05), (0.12, 0.12), (0.085, 0.17), (0.04, 0.2), (0.008, 0.21)],
-    segments=28, arc=260, arc_start=-40, location=(hx, hy + 0.015, hz), mat=robe_hood, bone="head",
+    segments=S(28), arc=260, arc_start=-40, location=(hx, hy + 0.015, hz), mat=robe_hood, bone="head",
     deform=lambda v, a, ring: (v.x * (1 + 0.05 * math.sin(7 * a)), v.y * (1 + 0.05 * math.sin(7 * a)),
                                v.z - (0.04 * max(0.0, math.sin(a)) if ring == 0 else 0.0)),
 ))
@@ -214,4 +230,4 @@ kit.animate(rig, "walk", {
     30: {"leg_l": (22, 0, 0), "leg_r": (-22, 0, 0), "arm_l": (-15, 0, 0), "arm_r": (15, 0, 0), "spine": (0, 3, 0)},
 })
 
-kit.export(model_name="cultist", kind="characters")
+kit.export(model_name="cultist_combat" if COMBAT else "cultist", kind="characters")
