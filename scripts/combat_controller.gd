@@ -8,13 +8,21 @@ extends Node
 ## Clicking an enemy within reach (1.5 m between their bodies' edges) spends his action on an attack:
 ## a d20 plus attack bonus against Armour Class, damage dice on a hit, a natural 20 a critical hit
 ## (double dice) and a natural 1 always a miss.
+## A hit takes its damage off the target's hit points; at 0 a combatant is defeated and leaves the turn
+## order. Combat ends in victory when no enemy is left standing, or in defeat if the detective falls.
 ## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_bonus`,
-## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`).
+## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`, `max_hit_points`).
 
 ## Emitted when a combatant's turn begins.
 signal turn_started(combatant: Node3D)
 ## Emitted when an attack is resolved, with what `attack` returns.
 signal attack_resolved(result: Dictionary)
+## Emitted when a combatant's hit points change, with the new value.
+signal hit_points_changed(combatant: Node3D, hit_points: int)
+## Emitted when combat ends with every enemy defeated.
+signal victory
+## Emitted when combat ends with the detective defeated.
+signal defeat
 
 ## How far an attack reaches, between the attacker's and the target's bodies' edges (metres).
 const ATTACK_REACH := 1.5
@@ -48,6 +56,10 @@ var round := 0
 var movement_left := 0.0
 var actions_left := 0
 var bonus_actions_left := 0
+
+## Each combatant's current hit points, and who has been defeated (at 0).
+var hit_points := {}
+var defeated: Array[Node3D] = []
 
 ## The path previewed under the mouse on the detective's turn: its points (from him), length in
 ## metres, and whether it fits his movement left.
@@ -130,7 +142,7 @@ func _enemy_under(screen_position: Vector2) -> Node3D:
 
 ## Whether `attacker` may attack `target` now: on their turn, with their action, within reach.
 func can_attack(attacker: Node3D, target: Node3D) -> bool:
-	return running and active == attacker and actions_left > 0 and target != attacker \
+	return running and active == attacker and actions_left > 0 and target != attacker and not is_defeated(target) \
 		and _edge_gap(attacker, target) <= ATTACK_REACH
 
 
@@ -162,7 +174,43 @@ func attack(attacker: Node3D, target: Node3D) -> Dictionary:
 		"critical": critical, "damage_rolls": damage_rolls, "damage": damage,
 	}
 	attack_resolved.emit(result)
+	if hit:
+		apply_damage(target, damage)
 	return result
+
+
+func max_hit_points(combatant: Node) -> int:
+	return combatant.get_meta("max_hit_points", 1)
+
+
+func is_defeated(combatant: Node3D) -> bool:
+	return defeated.has(combatant)
+
+
+## Takes `amount` off `target`'s hit points (never below 0). At 0 they are defeated, which can end
+## combat.
+func apply_damage(target: Node3D, amount: int) -> void:
+	if not hit_points.has(target) or is_defeated(target):
+		return
+	hit_points[target] = maxi(hit_points[target] - amount, 0)
+	hit_points_changed.emit(target, hit_points[target])
+	if hit_points[target] == 0:
+		_defeat(target)
+
+
+func _defeat(combatant: Node3D) -> void:
+	defeated.append(combatant)
+	turn_order.erase(combatant)
+	if combatant == detective:
+		_end_combat(defeat)
+	elif combatants.all(func(c: Node3D) -> bool: return c == detective or is_defeated(c)):
+		_end_combat(victory)
+
+
+func _end_combat(outcome: Signal) -> void:
+	running = false
+	_hide_preview()
+	outcome.emit()
 
 
 func attack_bonus(combatant: Node) -> int:
@@ -238,8 +286,11 @@ func _physics_process(_delta: float) -> void:
 func start_combat(fighters: Array) -> void:
 	combatants.assign(fighters)
 	rolls = {}
+	hit_points = {}
+	defeated.clear()
 	for combatant in combatants:
 		rolls[combatant] = roll_d20()
+		hit_points[combatant] = max_hit_points(combatant)
 	turn_order.assign(order_by_initiative(rolls))
 	running = true
 	round = 1
