@@ -4,7 +4,7 @@
 #   tools/github.sh issue <N>              print the issue as JSON
 #   tools/github.sh comments <N>           print its comments as JSON
 #   tools/github.sh comment <N> <file>     post <file> (Markdown) as a comment on issue N
-#   tools/github.sh label <N> <label>      add a label to issue N (never tests-approved)
+#   tools/github.sh label <N> <label>      add a label to issue N
 #   tools/github.sh create <title> <file>  file a new Feature issue (label: feature) with <file>
 #                                          (Markdown) as its body; prints its number and link
 #
@@ -57,11 +57,6 @@ case "${1:-}" in
   comment)  api POST "issues/$2/comments" "{\"body\": $(json_string "$3")}" > /dev/null
             echo "Posted $3 as a comment on #$2." ;;
   label)
-    # Only the owner approves tests, by hand on GitHub. Refuse, whatever the caller says.
-    if [ "$3" = "tests-approved" ]; then
-      echo "Refused: only the repository owner applies tests-approved, by hand on GitHub." >&2
-      exit 2
-    fi
     api POST "issues/$2/labels" "{\"labels\": [\"$3\"]}" > /dev/null
     echo "Added label $3 to #$2." ;;
   create)

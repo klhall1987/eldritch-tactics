@@ -3,9 +3,9 @@ name: Ticket status
 # Enforces the ticket workflow defined in .github/labels.json:
 # - A ticket has at most one status label. Applying one removes the others.
 # - Only the repo owner and the bots listed in "agents" may apply status labels.
-# - The owner can move tickets anywhere. Their label is the approval.
+# - The owner can move tickets anywhere.
 # - Agents can only make the transitions listed in each status's "from",
-#   and can never apply a "human_only" label such as tests-approved.
+#   and can never apply a "human_only" label (there are none at the moment).
 # A disallowed label is removed again, with a comment explaining why.
 on:
   issues:

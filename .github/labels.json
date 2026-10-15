@@ -6,28 +6,14 @@
       "name": "needs-clarification",
       "color": "d93f0b",
       "description": "Ticket is ambiguous. Waiting on a human to answer questions.",
-      "from": [null, "tests-proposed", "tests-approved", "in-progress"],
+      "from": [null, "in-progress"],
       "human_only": false
-    },
-    {
-      "name": "tests-proposed",
-      "color": "fbca04",
-      "description": "Tests are written and waiting for human review.",
-      "from": [null, "needs-clarification"],
-      "human_only": false
-    },
-    {
-      "name": "tests-approved",
-      "color": "0e8a16",
-      "description": "APPROVAL GATE: a human has approved the proposed tests.",
-      "from": ["tests-proposed"],
-      "human_only": true
     },
     {
       "name": "in-progress",
       "color": "1d76db",
-      "description": "Implementation underway against the approved tests.",
-      "from": ["tests-approved", "ready-for-review"],
+      "description": "Tests and implementation underway.",
+      "from": [null, "needs-clarification", "ready-for-review"],
       "human_only": false
     },
     {

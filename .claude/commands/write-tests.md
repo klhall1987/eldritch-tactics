@@ -86,10 +86,10 @@ Otherwise:
 2. Write the draft PR body to `.agent/pr.md`: `Closes #$ARGUMENTS`, the table of acceptance
    criteria and their tests, and the interface and measurements the tests assume.
 3. Write the issue comment to `.agent/comment.md`: a `PR_LINK` placeholder, the criteria-to-tests
-   table, and "Review the tests in the PR. Apply `tests-approved` on this issue to approve them,
-   or comment with changes."
-4. Tell me the tests are ready for review, list the interface and measurement choices the tests
-   made (approving the tests approves them), and list my next steps:
+   table, and "Review the tests in the PR, or comment with changes."
+4. Apply `in-progress`: `bash tools/github.sh label $ARGUMENTS in-progress`.
+5. Tell me the tests are ready for review, list the interface and measurement choices the tests
+   made (once pushed, they're fixed), and list my next steps:
    - review the diff (`git status`, plus new files), then commit and push the branch
    - open a draft PR with `.agent/pr.md` (CI will be red until implemented; that's expected)
-   - post `.agent/comment.md` and apply `tests-proposed`
+   - post `.agent/comment.md`, then run `/implement $ARGUMENTS`

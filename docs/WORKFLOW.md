@@ -18,99 +18,92 @@ one command per phase, billed to your Claude subscription. Nothing on GitHub cal
 A ticket's status is a single label. Applying a new status label removes the old one.
 
 ```
-(no status) → [needs-clarification] → tests-proposed → tests-approved → in-progress → ready-for-review → merged
-                    optional                            (owner only)
+(no status) → [needs-clarification] → in-progress → ready-for-review → merged
+                    optional
 ```
 
 | Label | Applied by | Meaning |
 |---|---|---|
 | `needs-clarification` | Claude or you | Claude's questions are in a comment. **Waiting on you** to answer. |
-| `tests-proposed` | Claude | A draft PR from `ticket-<N>-<slug>` holds failing tests. **Waiting on you** to review. |
-| `tests-approved` | **You, by hand** | **The approval gate.** You reviewed the tests and approved them. |
-| `in-progress` | Claude | Claude is implementing against the approved tests. |
-| `ready-for-review` | Claude | CI is green and the PR is out of draft. **Waiting on you** to review and merge. |
+| `in-progress` | Claude | Tests and implementation are underway on `ticket-<N>-<slug>`. |
+| `ready-for-review` | Claude or you | The PR is open and CI is green. **Waiting on you** to review and merge. |
 
-## Running a ticket
+## Filing tickets: `/new-ticket <what you want>`
 
-| Step | You do | Claude does |
-|---|---|---|
-| 1 | Open a Feature issue on GitHub, or run `/new-ticket <what you want>` | With `/new-ticket`: splits big requests into a queue of small tickets in build order, each naming the ticket it depends on. Drafts them in the Feature format and shows you the queue, the full text and the decisions it made (each one you can change), then asks **Does all this look good?** Anything but yes is treated as feedback: it revises and asks again. On yes, it files each issue in order with the `feature` label and lists the queue with issue numbers |
-| 2 | `/write-tests <N>` | Checks the ticket is ready (skipped for tickets filed by `/new-ticket`, which were already checked with you, unless you've commented since). If not, posts numbered questions on the issue and applies `needs-clarification`, then stops. If it is, writes failing tests on `ticket-<N>-<slug>`, and drafts the PR and comment for you to post |
-| 3 | If Claude asked questions: answer on the issue (or edit the ticket), then run `/write-tests <N>` again | |
-| 4 | Commit and push the tests, open the draft PR, apply `tests-proposed` | |
-| 5 | Review the PR's tests. Apply `tests-approved`, or comment and re-run `/write-tests <N>` | |
-| 6 | `/implement <N>` | Implements, watches CI until green, marks the PR ready, applies `ready-for-review` |
-| 7 | Review and merge, or comment and re-run `/implement <N>` | |
-| 8 | If `/new-ticket` made a queue, start the next ticket at step 2 | `/write-tests` checks the ticket's dependency is merged first, and asks you if it isn't |
+Splits big requests into a queue of small tickets in build order, each naming the ticket it depends
+on. Drafts them in the Feature format and shows you the queue, the full text and the decisions it
+made (each one you can change), then asks **Does all this look good?** Anything but yes is treated
+as feedback: it revises and asks again. On yes, it files each issue in order with the `feature` label
+and lists the queue with issue numbers.
 
-### One step: `/ticket <N>`
+## Working tickets
 
-Steps 2-6 above in a single run, with one review instead of two:
+There are three ways to work a ticket, from most to least hands-on.
+
+### Many tickets: `/tickets <N> <N> ...`
+
+Works the listed tickets **in the order given**, each one the `/ticket` way (below), and this time
+Claude commits, pushes and opens the PRs itself. The PRs are **stacked**:
+
+```
+main ← ticket-45-… ← ticket-46-… ← ticket-47-…
+```
+
+The first ticket branches from `main` and its PR targets `main`. Each later ticket branches from the
+previous ticket's branch and its PR targets that branch, so it shows only that ticket's changes.
+Claude stops at the first ticket that needs clarification or can't be finished, and tells you where
+the stack ended.
+
+To merge a stack, merge the bottom PR into `main` first. GitHub then retargets the next PR at `main`
+(if the branch is deleted on merge; otherwise change its base by hand), and so on up the stack.
+Use **merge commits**, not squash: squashing rewrites the commits the next PR is built on.
+If you ask for changes in a lower PR, re-run `/implement <N>` for it, then merge its branch into the
+PRs above.
+
+This is the only command that commits or pushes. It never pushes to `main`, never force-pushes and
+never merges.
+
+### One ticket: `/ticket <N>`
 
 | Step | You do | Claude does |
 |---|---|---|
 | 1 | `/ticket <N>` | Checks the ticket is ready (asking on the issue if not, like `/write-tests`). Then, on a new `ticket-<N>-<slug>` branch: writes the failing tests from the ticket, checks each fails for the right reason, **freezes** them (records a fingerprint of `tests/`), implements, checks everything passes and the fingerprint still matches, and drafts the PR and comment, with the failing-then-passing evidence |
-| 2 | Review the one diff (tests and code). Commit and push, open the PR **as a draft**, apply `tests-approved` (approving tests and code together), **then** mark the PR ready, post the comment, and apply `ready-for-review` once CI is green | |
-| 3 | If CI fails, run `/implement <N>`. The tests are approved by then | Fixes it as usual |
+| 2 | Review the one diff (tests and code). Commit and push, open the PR, post the comment, and apply `ready-for-review` once CI is green | |
+| 3 | If CI fails, run `/implement <N>` | Fixes it |
 
-Marking the PR ready *after* applying `tests-approved` matters: the `approved-tests` check only
-re-runs on PR events, so this way it runs against the approval you just recorded.
+### Phase by phase: `/write-tests <N>`, then `/implement <N>`
 
-Claude still never applies `tests-approved`, and the approved-tests check works exactly as before.
-What's different is that you approve once, at the end, so you're reviewing the tests and the code
-together. The frozen fingerprint and the evidence in the PR show the tests were written, and failed,
-before the code existed.
+| Step | You do | Claude does |
+|---|---|---|
+| 1 | `/write-tests <N>` | Checks the ticket is ready (skipped for tickets filed by `/new-ticket`, unless you've commented since). If not, posts numbered questions on the issue and applies `needs-clarification`, then stops. If it is, writes failing tests on `ticket-<N>-<slug>`, and drafts the PR and comment for you to post |
+| 2 | If Claude asked questions: answer on the issue (or edit the ticket), then run `/write-tests <N>` again | |
+| 3 | Review the tests. Commit and push them and open a draft PR, or comment and re-run `/write-tests <N>` | |
+| 4 | `/implement <N>` | Implements against the pushed tests, without changing them |
+| 5 | Review, commit and push, mark the PR ready, apply `ready-for-review` once CI is green. Merge, or comment and re-run `/implement <N>` | |
+
+If `/new-ticket` made a queue, work it top to bottom. `/write-tests` and `/ticket` check that a
+ticket's dependency is merged first, and ask you if it isn't. `/tickets` doesn't need to: it stacks
+each ticket on the one before.
 
 The commands are in `.claude/commands/`. Shared rules for every phase are in `CLAUDE.md`.
 Edit either to tune how Claude works.
 
 ## Guarantees
 
-The prompts tell Claude the rules. These checks enforce them:
+There is no separate approval step: you review the tests and the code together in the PR, and
+merging is the approval. These keep the tests honest:
 
 | Rule | Enforced by |
 |---|---|
-| Writing tests changes only `tests/` | `tools/ticket_guard.sh tests-only`, run by `/write-tests` before pushing |
-| Approved tests can't be weakened | The **`approved-tests` required check** (`.github/workflows/approved-tests.yml`), also run locally by `/implement` |
-| Claude never approves | The `.claude/hooks/block-self-approval.sh` hook blocks any command that would apply `tests-approved` |
+| Tests are written before the code, and fail first | `/ticket` and `/tickets` record each new test's failure message in the PR |
+| Tests aren't changed to fit the code | `/ticket` and `/tickets` fingerprint `tests/` after writing them and check it still matches after implementing; `/implement` never touches `tests/` |
+| A ticket never changes the test harness | `tools/ticket_guard.sh protected` (`addons/gut/`, `.gutconfig.json`, `tools/`, `.github/`) |
+| Writing tests changes only `tests/` | `tools/ticket_guard.sh tests-only` |
+| Every PR passes the tests and the smoke run | The required `godot-checks` check (`.github/workflows/ci.yml`) |
 | One status at a time, and only you move tickets | `.github/workflows/ticket-status.yml` |
 
-### The approved-tests check
-
-This is the most important guard. Without it, the AI could "pass" by quietly weakening the tests.
-
-1. When you apply `tests-approved`, the **Record test approval** workflow posts a comment from
-   `github-actions[bot]` with a hidden marker naming the commits you approved: the current head of every branch for the
-   ticket. Neither you nor
-   Claude can post as that account, so the marker can't be faked.
-2. On every PR update, `approved-tests` finds the tickets the PR implements: from its branch name
-   (`ticket-<N>-<slug>`, or legacy `ticket/<N>`), plus any issue it closes. A ticket can have several PRs.
-   For each Feature ticket it fails if:
-   - the tests were never approved (draft PRs get a pass while waiting for approval)
-   - the branch doesn't contain an approved commit (it was rebased, force-pushed, squashed,
-     or branched from somewhere other than the approved tests)
-   - anything that decides whether the tests pass has changed since approval: `tests/`,
-     `addons/gut/`, `.gutconfig.json`, `tools/` or `.github/`. This covers edited, deleted and
-     *added* tests, a patched test framework, a narrowed test config, and edited test scripts or CI.
-   - Merging `main` into a ticket branch is fine: a protected file that's identical to `main`'s
-     version passes, except the ticket's own test files, which must stay exactly as approved.
-3. It runs on `pull_request_target`, so GitHub always uses the version on `main`. A PR can't
-   edit or delete it. It never runs code from the PR, only `git diff` with the guard script from `main`.
-
-If an approved test really is wrong, `/implement` stops and asks instead. You fix it through
-`/write-tests` and approve again, which records a new approved commit.
-
-**Several PRs per ticket:** name every branch `ticket-<N>-<slug>` (e.g. `ticket-1-player-movement`,
-`ticket-1-fix-diagonal-speed`) and branch it from the approved tests, or from `main` once the tests
-are merged. Merge ticket PRs with a **merge commit**, not squash or rebase: those create new
-commits, so the approved commit wouldn't be in `main`'s history, and later PRs for the ticket would fail.
-
-**Limit:** a PR whose branch isn't named `ticket-<N>-…` and that closes no Feature issue isn't
-checked, because there are no approved tests to compare against. The check catches mistakes, but you still read what you merge.
-
-**What GitHub can't see:** Claude uses your `gh` login, so on GitHub its comments and labels are
-indistinguishable from yours. The local hook stops it from approving. The CI check makes sure that,
-even so, nothing merges with changed tests unless you notice.
+These are checks Claude runs on itself, not CI gates: still read what you merge, especially any
+change under `tests/`.
 
 ## Who can run tickets
 
@@ -129,7 +122,7 @@ treat only your comments as instructions.
 **Once per repository** (Settings on GitHub):
 1. Branches: protect `main`.
    - Require a pull request before merging.
-   - Require the `godot-checks` and `approved-tests` status checks. `approved-tests` only appears in the list after it has run once, so open a PR first.
+   - Require the `godot-checks` status check.
 2. Actions → General → *Fork pull request workflows from outside collaborators*: set to
    **Require approval for all external contributors**.
 3. Don't give anyone else Triage or Write access.

@@ -1,21 +1,13 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene format=3 uid="uid://b7beccyy8ycfd"]
 
 [ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
 [ext_resource type="PackedScene" uid="uid://hbjm6etvce02" path="res://assets/models/characters/detective.glb" id="3_detective"]
 [ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="4_cultist"]
-[ext_resource type="Script" path="res://scripts/follow_camera.gd" id="5_follow"]
-[ext_resource type="Script" path="res://scripts/flicker_light.gd" id="6_flicker"]
-[ext_resource type="Script" path="res://scripts/player.gd" id="7_player"]
-[ext_resource type="Script" path="res://scripts/room_collision.gd" id="8_room"]
-
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
-radius = 0.25
-height = 1.8
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_touch"]
-radius = 0.6
-height = 1.8
+[ext_resource type="Script" uid="uid://bw4qkcj37vgg" path="res://scripts/follow_camera.gd" id="5_follow"]
+[ext_resource type="Script" uid="uid://c087yug6bd7ys" path="res://scripts/flicker_light.gd" id="6_flicker"]
+[ext_resource type="Script" uid="uid://b1db57fh20204" path="res://scripts/player.gd" id="7_player"]
+[ext_resource type="Script" uid="uid://b38re63lr3m26" path="res://scripts/room_collision.gd" id="8_room"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -25,38 +17,46 @@ ambient_light_color = Color(0.3, 0.3, 0.38, 1)
 ambient_light_energy = 0.3
 glow_enabled = true
 
-[node name="Main" type="Node3D"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.25
+height = 1.8
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_touch"]
+height = 1.8
+radius = 0.6
+
+[node name="Main" type="Node3D" unique_id=1823562234]
 script = ExtResource("1_main")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1795609953]
 environment = SubResource("Environment_garage")
 
-[node name="Garage" parent="." instance=ExtResource("2_garage")]
+[node name="Garage" parent="." unique_id=1565390850 instance=ExtResource("2_garage")]
 
-[node name="RoomCollision" type="StaticBody3D" parent="."]
+[node name="RoomCollision" type="StaticBody3D" parent="." unique_id=330863983]
 script = ExtResource("8_room")
 garage_path = NodePath("../Garage")
 
-[node name="Player" type="CharacterBody3D" parent="."]
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1014575364]
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
 script = ExtResource("7_player")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1559143384]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="Detective" parent="Player" instance=ExtResource("3_detective")]
+[node name="Detective" parent="Player" unique_id=1625854437 instance=ExtResource("3_detective")]
 
-[node name="Cultist" parent="." groups=["enemies"] instance=ExtResource("4_cultist")]
-transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
+[node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
+transform = Transform3D(0.9302665, 0, 0.3668854, 0, 1, 0, -0.3668854, 0, 0.9302665, 0.6, 0, 1.118953)
 
-[node name="TouchArea" type="Area3D" parent="Cultist"]
+[node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Cultist/TouchArea"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Cultist/TouchArea" unique_id=1913600477]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CylinderShape3D_touch")
 
-[node name="BulbLight" type="OmniLight3D" parent="."]
+[node name="BulbLight" type="OmniLight3D" parent="." unique_id=6905486]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, -0.2)
 light_color = Color(1, 0.78, 0.5, 1)
 light_energy = 1.6
@@ -64,7 +64,7 @@ shadow_enabled = true
 omni_range = 7.0
 script = ExtResource("6_flicker")
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=659931889]
 transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 11.0474, 11, 12.8474)
 projection = 1
 current = true

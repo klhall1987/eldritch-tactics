@@ -19,14 +19,13 @@ bash tools/smoke_test.sh   # runs the main scene headless for 300 frames, fails 
 ```
 
 Both run in GitHub Actions on every push and pull request (`.github/workflows/ci.yml`).
-Protect `main` (Settings > Branches): require a pull request, and the `godot-checks` and
-`approved-tests` status checks.
+Protect `main` (Settings > Branches): require a pull request and the `godot-checks` status check.
 
 ## Tickets
 
-Work is tracked as small Feature issues. Each one moves through status labels, and only the
-repository owner can approve one, by applying `tests-approved`. The AI work runs locally in
-Claude Code: `/new-ticket <what you want>`, `/write-tests <N>`, then `/implement <N>`.
+Work is tracked as small Feature issues, each moving through status labels. The AI work runs
+locally in Claude Code: `/new-ticket <what you want>` to file tickets, then `/ticket <N>` for one
+ticket, or `/tickets <N> <N> ...` to work a list of them in order, as stacked PRs.
 See [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
 ## Layout
