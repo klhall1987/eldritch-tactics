@@ -103,6 +103,44 @@ def ball(name, radius, subdivisions=1, location=(0, 0, 0), rotation=(0, 0, 0), s
     return _object_from_bmesh(name, bm, location, rotation, mat, bone)
 
 
+def lathe(name, profile, segments=24, arc=360.0, arc_start=0.0, deform=None, location=(0, 0, 0),
+          rotation=(0, 0, 0), mat=None, bone=None):
+    """A surface of revolution around Z: each (radius, z) in `profile` becomes a ring of vertices.
+
+    Rings are joined bottom to top into an open shell (no caps). `arc` < 360 leaves a gap: the shell
+    runs from `arc_start` degrees (0 = +X, 90 = +Y) for `arc` degrees. `deform(v, angle, ring)`
+    may return a moved copy of each vertex (`angle` in radians, `ring` = index into `profile`), for
+    folds, tears and ragged hems.
+    """
+    bm = bmesh.new()
+    closed = arc >= 360.0
+    count = segments if closed else segments + 1
+    rings = []
+    for ring_index, (radius, z) in enumerate(profile):
+        ring = []
+        for i in range(count):
+            angle = math.radians(arc_start + arc * i / segments)
+            v = Vector((radius * math.cos(angle), radius * math.sin(angle), z))
+            if deform:
+                v = Vector(deform(v, angle, ring_index))
+            ring.append(bm.verts.new(v))
+        rings.append(ring)
+    for lower, upper in zip(rings, rings[1:]):
+        for i in range(segments):
+            j = (i + 1) % count
+            bm.faces.new((lower[i], lower[j], upper[j], upper[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _object_from_bmesh(name, bm, location, rotation, mat, bone)
+
+
+def reshape(obj, fn):
+    """Moves every vertex of `obj` (in its own space) to `fn(v)`, for sculpting a primitive."""
+    for v in obj.data.vertices:
+        v.co = Vector(fn(v.co.copy()))
+    obj.data.update()
+    return obj
+
+
 def armature(name, bones):
     """An armature from (bone, head, tail, parent) tuples. Parents must come before children."""
     data = bpy.data.armatures.new(name + "_rig")
