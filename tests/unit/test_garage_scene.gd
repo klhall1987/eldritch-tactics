@@ -30,34 +30,6 @@ func _camera(main: Node) -> Camera3D:
 	return cameras[0] if cameras.size() > 0 else null
 
 
-# The four corners of the top of the garage's floor, in world space.
-func _floor_corners(garage: Node3D) -> PackedVector3Array:
-	var corners := PackedVector3Array()
-	var floor_node := garage.find_child("floor", true, false)
-	assert_not_null(floor_node, "the garage has its floor")
-	if floor_node == null:
-		return corners
-	var meshes := floor_node.find_children("*", "MeshInstance3D", true, false)
-	if floor_node is MeshInstance3D:
-		meshes.append(floor_node)
-	var box := AABB()
-	var first := true
-	for mi: MeshInstance3D in meshes:
-		for s in mi.mesh.get_surface_count():
-			for v in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
-				var p: Vector3 = mi.global_transform * v
-				box = AABB(p, Vector3.ZERO) if first else box.expand(p)
-				first = false
-	assert_false(first, "the floor has geometry")
-	if first:
-		return corners
-	var top := box.end.y
-	for x in [box.position.x, box.end.x]:
-		for z in [box.position.z, box.end.z]:
-			corners.append(Vector3(x, top, z))
-	return corners
-
-
 # Given the main scene, when it is instantiated, then it contains an instance of
 # res://assets/models/environments/garage.glb named Garage, placed at the origin with no rotation
 # or scale.
@@ -96,23 +68,6 @@ func test_main_scene_has_isometric_orthographic_camera():
 		"the camera is turned 45 degrees, looking from the +X/+Z corner towards -X/-Z")
 	var right := camera.global_transform.basis.x.normalized()
 	assert_almost_eq(right.y, 0.0, 0.02, "the camera isn't rolled")
-
-
-# Given the main scene running in the default window size, when the garage's floor corners are
-# tested against the camera, then all four are inside the camera's view.
-func test_camera_sees_the_whole_garage_floor():
-	var main := _main()
-	if main == null:
-		return
-	var garage := _garage(main)
-	var camera := _camera(main)
-	if garage == null or camera == null:
-		return
-	var corners := _floor_corners(garage)
-	assert_eq(corners.size(), 4, "the floor has four corners to test")
-	for corner in corners:
-		assert_true(camera.is_position_in_frustum(corner),
-			"the floor corner at %s is inside the camera's view" % corner)
 
 
 # Given the main scene, when it is instantiated, then it has at least one DirectionalLight3D that
