@@ -13,6 +13,14 @@ extends NavigationRegion3D
 
 
 func _ready() -> void:
+	# Its own map, not the world's: another copy of the scene sharing the world (as in tests) would
+	# otherwise lay a second, overlapping floor onto the same map.
+	var map := NavigationServer3D.map_create()
+	NavigationServer3D.map_set_cell_size(map, ProjectSettings.get_setting("navigation/3d/default_cell_size"))
+	NavigationServer3D.map_set_cell_height(map, ProjectSettings.get_setting("navigation/3d/default_cell_height"))
+	NavigationServer3D.map_set_use_async_iterations(map, false)
+	NavigationServer3D.map_set_active(map, true)
+	set_navigation_map(map)
 	var source := NavigationMeshSourceGeometryData3D.new()
 	var floor_box := _bounds(get_node(garage_path).find_child("floor", true, false))
 	var a := Vector3(floor_box.position.x, 0, floor_box.position.z)
@@ -36,6 +44,12 @@ func _ready() -> void:
 	mesh.filter_baking_aabb = AABB(Vector3(-100, -1, -100), Vector3(200, 2, 200))
 	NavigationServer3D.bake_from_source_geometry_data(mesh, source)
 	navigation_mesh = mesh
+
+
+func _exit_tree() -> void:
+	var map := get_navigation_map()
+	set_navigation_map(get_world_3d().navigation_map)
+	NavigationServer3D.free_rid(map)
 
 
 ## The triangles of a box of `size` centred on the origin (built here rather than read from a mesh,

@@ -49,6 +49,12 @@ transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107
 script = ExtResource("7_player")
 metadata/initiative_bonus = 2
 metadata/movement = 9.0
+metadata/attack_bonus = 4
+metadata/armour_class = 13
+metadata/damage_dice = 1
+metadata/damage_die = 8
+metadata/damage_bonus = 2
+metadata/body_radius = 0.25
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1559143384]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -60,6 +66,12 @@ shape = SubResource("CapsuleShape3D_player")
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
 metadata/initiative_bonus = 1
 metadata/movement = 6.0
+metadata/attack_bonus = 3
+metadata/armour_class = 11
+metadata/damage_dice = 1
+metadata/damage_die = 6
+metadata/damage_bonus = 1
+metadata/body_radius = 0.31
 
 [node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 
@@ -88,6 +100,7 @@ target_path = NodePath("../Player/Detective")
 script = ExtResource("9_combat")
 detective_path = NodePath("../Player")
 path_preview_node = NodePath("../PathPreview")
+navigation_node = NodePath("../Navigation")
 
 [node name="PathPreview" type="MeshInstance3D" parent="."]
 visible = false
