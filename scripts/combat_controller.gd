@@ -5,15 +5,28 @@ extends Node
 ## the turn (End Turn, Space, on the detective's turn) passes play on; after the last combatant a
 ## new round begins. On his turn the detective moves by clicking the floor: the path under the mouse
 ## is previewed with its length, and a click walks him along it if it fits his movement left.
-## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`).
+## Clicking an enemy within reach (1.5 m between their bodies' edges) spends his action on an attack:
+## a d20 plus attack bonus against Armour Class, damage dice on a hit, a natural 20 a critical hit
+## (double dice) and a natural 1 always a miss.
+## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_bonus`,
+## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`).
 
 ## Emitted when a combatant's turn begins.
 signal turn_started(combatant: Node3D)
+## Emitted when an attack is resolved, with what `attack` returns.
+signal attack_resolved(result: Dictionary)
+
+## How far an attack reaches, between the attacker's and the target's bodies' edges (metres).
+const ATTACK_REACH := 1.5
+## How tall a combatant's body is, for clicking on it (metres).
+const BODY_HEIGHT := 1.8
 
 ## The detective's combatant (his Player body). He wins initiative ties that nothing else breaks.
 @export var detective_path: NodePath
 ## Draws the previewed path (a MeshInstance3D, with a Label3D under it for the length).
 @export var path_preview_node: NodePath
+## The garage's NavigationRegion3D, whose map paths are found on.
+@export var navigation_node: NodePath
 ## Path preview colours, within his movement and beyond it.
 @export var reachable_colour := Color(0.95, 0.85, 0.45)
 @export var out_of_reach_colour := Color(0.85, 0.2, 0.15)
@@ -44,6 +57,7 @@ var preview_reachable := false
 
 @onready var detective := get_node_or_null(detective_path) as Node3D
 @onready var _preview := get_node_or_null(path_preview_node) as MeshInstance3D
+@onready var _navigation := get_node_or_null(navigation_node) as NavigationRegion3D
 
 
 func _ready() -> void:
@@ -62,8 +76,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _detective_can_move():
 		return
 	if event is InputEventMouseMotion:
-		_update_preview(event.position)
+		if _enemy_under(event.position) != null:
+			_hide_preview()
+		else:
+			_update_preview(event.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# A click on an enemy is an attack (if allowed), never a move.
+		var enemy := _enemy_under(event.position)
+		if enemy != null:
+			if can_attack(detective, enemy):
+				attack(detective, enemy)
+			return
 		_update_preview(event.position)
 		if preview_reachable and preview_path.size() > 1:
 			movement_left -= preview_length
@@ -76,6 +99,80 @@ func _detective_can_move() -> bool:
 	return running and active == detective and detective != null and not detective.is_walking_path()
 
 
+## The enemy combatant under `screen_position`, or null: the ray from the camera passes through its
+## body, taken as an upright cylinder of its `body_radius`, from the floor to `BODY_HEIGHT`.
+func _enemy_under(screen_position: Vector2) -> Node3D:
+	var camera := get_viewport().get_camera_3d()
+	var origin := camera.project_ray_origin(screen_position)
+	var direction := camera.project_ray_normal(screen_position)
+	for enemy in combatants:
+		if enemy == detective:
+			continue
+		var radius: float = enemy.get_meta("body_radius", 0.0)
+		# Where the ray, seen from above, is within `radius` of the enemy's centre...
+		var o := Vector2(origin.x - enemy.global_position.x, origin.z - enemy.global_position.z)
+		var d := Vector2(direction.x, direction.z)
+		var a := d.length_squared()
+		var b := 2.0 * o.dot(d)
+		var c := o.length_squared() - radius * radius
+		var discriminant := b * b - 4.0 * a * c
+		if a < 0.000001 or discriminant < 0.0:
+			continue
+		var t_in := (-b - sqrt(discriminant)) / (2.0 * a)
+		var t_out := (-b + sqrt(discriminant)) / (2.0 * a)
+		# ...and at a height between the floor and the top of its body.
+		var y_in := origin.y + direction.y * t_in - enemy.global_position.y
+		var y_out := origin.y + direction.y * t_out - enemy.global_position.y
+		if maxf(y_in, y_out) >= 0.0 and minf(y_in, y_out) <= BODY_HEIGHT:
+			return enemy
+	return null
+
+
+## Whether `attacker` may attack `target` now: on their turn, with their action, within reach.
+func can_attack(attacker: Node3D, target: Node3D) -> bool:
+	return running and active == attacker and actions_left > 0 and target != attacker \
+		and _edge_gap(attacker, target) <= ATTACK_REACH
+
+
+## The distance between two combatants' bodies, edge to edge, seen from above.
+func _edge_gap(a: Node3D, b: Node3D) -> float:
+	var centres := Vector2(a.global_position.x - b.global_position.x, a.global_position.z - b.global_position.z).length()
+	return centres - float(a.get_meta("body_radius", 0.0)) - float(b.get_meta("body_radius", 0.0))
+
+
+## Resolves one attack by `attacker` on `target` with the seeded dice, spending the attacker's action
+## if it's their turn. Returns (and emits with `attack_resolved`) what happened: `attacker`,
+## `target`, `roll` (the d20), `total`, `hit`, `critical`, `damage_rolls` and `damage`.
+func attack(attacker: Node3D, target: Node3D) -> Dictionary:
+	if active == attacker:
+		actions_left = maxi(actions_left - 1, 0)
+	var roll := roll_d20()
+	var total := roll + attack_bonus(attacker)
+	var critical := roll == 20
+	var hit := critical or (roll != 1 and total >= armour_class(target))
+	var damage_rolls: Array[int] = []
+	var damage := 0
+	if hit:
+		var dice: int = attacker.get_meta("damage_dice", 1) * (2 if critical else 1)
+		for i in dice:
+			damage_rolls.append(rng.randi_range(1, attacker.get_meta("damage_die", 4)))
+		damage = damage_rolls.reduce(func(sum: int, die: int) -> int: return sum + die, 0) + int(attacker.get_meta("damage_bonus", 0))
+	var result := {
+		"attacker": attacker, "target": target, "roll": roll, "total": total, "hit": hit,
+		"critical": critical, "damage_rolls": damage_rolls, "damage": damage,
+	}
+	attack_resolved.emit(result)
+	return result
+
+
+func attack_bonus(combatant: Node) -> int:
+	return combatant.get_meta("attack_bonus", 0)
+
+
+func armour_class(combatant: Node) -> int:
+	return combatant.get_meta("armour_class", 10)
+
+
 ## Previews the path from the detective to the floor point under `screen_position`.
 func _update_preview(screen_position: Vector2) -> void:
 	var camera := get_viewport().get_camera_3d()
@@ -85,7 +182,7 @@ func _update_preview(screen_position: Vector2) -> void:
 		_hide_preview()
 		return
 	var point := origin - normal * (origin.y / normal.y)  # where the ray meets the floor (y = 0)
-	var map := detective.get_world_3d().navigation_map
+	var map := _navigation.get_navigation_map() if _navigation != null else detective.get_world_3d().navigation_map
 	preview_path = NavigationServer3D.map_get_path(map, detective.global_position, point, true)
 	preview_length = 0.0
 	for i in range(1, preview_path.size()):
