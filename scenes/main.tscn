@@ -28,6 +28,13 @@ transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107
 [node name="Cultist" parent="." instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
 
+[node name="BulbLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, -0.2)
+light_color = Color(1, 0.78, 0.5, 1)
+light_energy = 1.6
+shadow_enabled = true
+omni_range = 7.0
+
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.409576, 0.286788, 0, 0.573576, 0.819152, -0.5, -0.709406, 0.496732, 0, 6, 0)
 light_energy = 0.8
