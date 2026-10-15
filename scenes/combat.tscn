@@ -1,0 +1,81 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
+[ext_resource type="PackedScene" uid="uid://hbjm6etvce02" path="res://assets/models/characters/detective.glb" id="2_detective"]
+[ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="3_cultist"]
+[ext_resource type="Script" path="res://scripts/flicker_light.gd" id="4_flicker"]
+
+[sub_resource type="Environment" id="Environment_combat"]
+background_mode = 1
+background_color = Color(0.02, 0.02, 0.03, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.3, 0.3, 0.38, 1)
+ambient_light_energy = 0.3
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="Material_floor"]
+albedo_color = Color(0.09, 0.085, 0.08, 1)
+roughness = 0.95
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+material = SubResource("Material_floor")
+size = Vector2(14, 14)
+
+[sub_resource type="StandardMaterial3D" id="Material_stone"]
+albedo_color = Color(0.3, 0.28, 0.25, 1)
+roughness = 0.9
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_stone"]
+material = SubResource("Material_stone")
+top_radius = 2.6
+bottom_radius = 2.7
+height = 0.02
+radial_segments = 32
+
+[sub_resource type="StandardMaterial3D" id="Material_rim"]
+albedo_color = Color(0.16, 0.15, 0.13, 1)
+roughness = 0.95
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rim"]
+material = SubResource("Material_rim")
+top_radius = 2.95
+bottom_radius = 3.0
+height = 0.03
+radial_segments = 32
+
+[node name="Combat" type="Node3D"]
+script = ExtResource("1_combat")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_combat")
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_floor")
+
+[node name="StoneRim" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+mesh = SubResource("CylinderMesh_rim")
+
+[node name="StoneDisc" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_stone")
+
+[node name="Detective" parent="." instance=ExtResource("2_detective")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -1.4, 0, 0)
+
+[node name="Cultist" parent="." instance=ExtResource("3_cultist")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 1.4, 0, 0)
+
+[node name="Light" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 0.6)
+light_color = Color(1, 0.78, 0.5, 1)
+light_energy = 2.2
+shadow_enabled = true
+omni_range = 7.0
+script = ExtResource("4_flicker")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.99824, 0.0593, 0, -0.0593, 0.99824, 0, 1.2, 4.2)
+current = true
+fov = 42.0
+far = 60.0
