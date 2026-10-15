@@ -34,13 +34,14 @@ A ticket's status is a single label. Applying a new status label removes the old
 
 | Step | You do | Claude does |
 |---|---|---|
-| 1 | Open a Feature issue on GitHub, or run `/new-ticket <what you want>` | With `/new-ticket`: drafts the ticket(s) in the Feature format, splits big requests, asks in chat if something is unclear, shows you the text, then files each issue with the `feature` label and tells you its number |
+| 1 | Open a Feature issue on GitHub, or run `/new-ticket <what you want>` | With `/new-ticket`: splits big requests into a queue of small tickets in build order, each naming the ticket it depends on. Drafts them in the Feature format and shows you the queue, the full text and the decisions it made (each one you can change), then asks **Does all this look good?** Anything but yes is treated as feedback: it revises and asks again. On yes, it files each issue in order with the `feature` label and lists the queue with issue numbers |
 | 2 | `/write-tests <N>` | Checks the ticket is ready (skipped for tickets filed by `/new-ticket`, which were already checked with you, unless you've commented since). If not, posts numbered questions on the issue and applies `needs-clarification`, then stops. If it is, writes failing tests on `ticket-<N>-<slug>`, and drafts the PR and comment for you to post |
 | 3 | If Claude asked questions: answer on the issue (or edit the ticket), then run `/write-tests <N>` again | |
 | 4 | Commit and push the tests, open the draft PR, apply `tests-proposed` | |
 | 5 | Review the PR's tests. Apply `tests-approved`, or comment and re-run `/write-tests <N>` | |
 | 6 | `/implement <N>` | Implements, watches CI until green, marks the PR ready, applies `ready-for-review` |
 | 7 | Review and merge, or comment and re-run `/implement <N>` | |
+| 8 | If `/new-ticket` made a queue, start the next ticket at step 2 | `/write-tests` checks the ticket's dependency is merged first, and asks you if it isn't |
 
 The commands are in `.claude/commands/`. Shared rules for every phase are in `CLAUDE.md`.
 Edit either to tune how Claude works.
