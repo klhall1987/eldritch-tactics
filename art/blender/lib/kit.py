@@ -1,4 +1,6 @@
-"""Shared helpers for building low-poly models in Blender from code.
+"""Shared helpers for building models in Blender from code: low-poly flat parts, and smooth,
+textured parts for realistic characters (subdivide, smooth, uv_cylinder, image_texture,
+textured_material).
 
 Run model scripts with tools/blender.sh, never by opening Blender. See art/README.md for the
 conventions (units, facing, origin) every model follows.
@@ -141,6 +143,84 @@ def reshape(obj, fn):
     return obj
 
 
+# --- Smooth, textured parts (for realistic, PS2-era characters; see art/README.md) ---------------
+
+
+def subdivide(obj, levels=1):
+    """Applies Catmull-Clark subdivision to `obj` now, so it survives bind()'s join."""
+    mod = obj.modifiers.new("Subdivision", "SUBSURF")
+    mod.levels = mod.render_levels = levels
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(depsgraph))
+    obj.modifiers.remove(mod)
+    old = obj.data
+    obj.data = mesh
+    bpy.data.meshes.remove(old)
+    for group in obj.vertex_groups:  # rigid skinning: the whole part still belongs to its bone
+        group.add(range(len(mesh.vertices)), 1.0, "REPLACE")
+    return obj
+
+
+def smooth(obj):
+    """Shades `obj` smooth: faces share vertex normals instead of each face being flat."""
+    for poly in obj.data.polygons:
+        poly.use_smooth = True
+    return obj
+
+
+def uv_cylinder(obj, v_scale=1.0, u_repeat=1.0):
+    """Wraps UVs around `obj`'s own Z axis: u goes once around (times `u_repeat`), v = z * `v_scale`.
+
+    The single seam is where u wraps from 1 back to 0.
+    """
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    layer = bm.loops.layers.uv.verify()
+    for face in bm.faces:
+        us = [math.atan2(loop.vert.co.y, loop.vert.co.x) / (2 * math.pi) + 0.5 for loop in face.loops]
+        if max(us) - min(us) > 0.5:  # the face straddles the seam: unwrap it onto one side
+            us = [u + 1.0 if u < 0.5 else u for u in us]
+        for loop, u in zip(face.loops, us):
+            loop[layer].uv = (u * u_repeat, loop.vert.co.z * v_scale)
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
+
+
+def image_texture(name, rgb):
+    """An image packed into the model from `rgb`, a numpy (height, width, 3) array of 0..1 floats.
+
+    Row 0 is the bottom of the image (v = 0), as Blender stores pixels.
+    """
+    import numpy as np
+
+    height, width = rgb.shape[:2]
+    image = bpy.data.images.new(name, width, height, alpha=False)
+    pixels = np.ones((height, width, 4), dtype=np.float32)
+    pixels[..., :3] = np.clip(rgb, 0.0, 1.0)
+    image.pixels.foreach_set(pixels.ravel())
+    image.update()
+    image.pack()
+    return image
+
+
+def textured_material(name, image, roughness=0.8):
+    """A Principled material whose base colour is `image` (mapped by the mesh's UVs)."""
+    import numpy as np
+
+    mat = bpy.data.materials.new(name)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["Metallic"].default_value = 0.0
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    average = np.array(image.pixels[:]).reshape(-1, 4)[:, :3].mean(axis=0)
+    mat.diffuse_color = (*average, 1.0)  # what flat (MATERIAL) workbench previews show
+    return mat
+
+
 def armature(name, bones):
     """An armature from (bone, head, tail, parent) tuples. Parents must come before children."""
     data = bpy.data.armatures.new(name + "_rig")
@@ -205,12 +285,16 @@ def _bounds():
     return lo, hi
 
 
-def render_previews(model_name, views=VIEWS, size=512):
-    """Renders flat-lit PNGs of the scene to art/previews/<model>_<view>.png for review."""
+def render_previews(model_name, views=VIEWS, size=512, colors="MATERIAL"):
+    """Renders flat-lit PNGs of the scene to art/previews/<model>_<view>.png for review.
+
+    `colors` is the Workbench colour source: "MATERIAL" (flat material colours) or "TEXTURE"
+    (image textures, for textured models).
+    """
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
-    scene.display.shading.color_type = "MATERIAL"
+    scene.display.shading.color_type = colors
     scene.display.shading.show_shadows = True
     scene.render.film_transparent = True
     scene.render.resolution_x = scene.render.resolution_y = size
@@ -239,8 +323,11 @@ def render_previews(model_name, views=VIEWS, size=512):
     return paths
 
 
-def export(model_name, kind, previews=True):
-    """Writes assets/models/<kind>/<model>.glb, and preview renders unless `previews` is False."""
+def export(model_name, kind, previews=True, preview_colors="MATERIAL"):
+    """Writes assets/models/<kind>/<model>.glb, and preview renders unless `previews` is False.
+
+    Pass `preview_colors="TEXTURE"` for a textured model, so its previews show its textures.
+    """
     out = ASSETS_DIR / kind / f"{model_name}.glb"
     out.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(
@@ -253,6 +340,6 @@ def export(model_name, kind, previews=True):
     )
     print(f"KIT: exported {out}")
     if previews:
-        for path in render_previews(model_name):
+        for path in render_previews(model_name, colors=preview_colors):
             print(f"KIT: preview {path}")
     return out
