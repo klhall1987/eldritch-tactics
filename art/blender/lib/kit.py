@@ -168,10 +168,11 @@ def smooth(obj):
     return obj
 
 
-def uv_cylinder(obj, v_scale=1.0, u_repeat=1.0):
-    """Wraps UVs around `obj`'s own Z axis: u goes once around (times `u_repeat`), v = z * `v_scale`.
+def uv_cylinder(obj, v_scale=1.0, u_repeat=1.0, v_offset=0.0):
+    """Wraps UVs around `obj`'s own Z axis: u goes once around (times `u_repeat`), and
+    v = z * `v_scale` + `v_offset`. Facing -Y (the front) is u = 0.25.
 
-    The single seam is where u wraps from 1 back to 0.
+    The single seam is where u wraps from 1 back to 0 (facing -X).
     """
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -181,7 +182,7 @@ def uv_cylinder(obj, v_scale=1.0, u_repeat=1.0):
         if max(us) - min(us) > 0.5:  # the face straddles the seam: unwrap it onto one side
             us = [u + 1.0 if u < 0.5 else u for u in us]
         for loop, u in zip(face.loops, us):
-            loop[layer].uv = (u * u_repeat, loop.vert.co.z * v_scale)
+            loop[layer].uv = (u * u_repeat, loop.vert.co.z * v_scale + v_offset)
     bm.to_mesh(obj.data)
     bm.free()
     return obj
