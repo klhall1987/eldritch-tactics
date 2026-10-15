@@ -8,6 +8,9 @@ extends CharacterBody3D
 ## How quickly he turns to face his direction of travel (higher is snappier).
 @export var turn_rate := 25.0
 
+## When false (e.g. once an encounter starts), the keys don't move him and he stands idle.
+var controllable := true
+
 var _animation: AnimationPlayer
 
 
@@ -18,7 +21,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	# Input.get_vector already caps the length at 1, so diagonals aren't faster.
-	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down") if controllable else Vector2.ZERO
 	var direction := _screen_to_floor(input)
 	velocity = direction * speed
 	move_and_slide()
