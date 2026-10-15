@@ -43,6 +43,24 @@ A ticket's status is a single label. Applying a new status label removes the old
 | 7 | Review and merge, or comment and re-run `/implement <N>` | |
 | 8 | If `/new-ticket` made a queue, start the next ticket at step 2 | `/write-tests` checks the ticket's dependency is merged first, and asks you if it isn't |
 
+### One step: `/ticket <N>`
+
+Steps 2-6 above in a single run, with one review instead of two:
+
+| Step | You do | Claude does |
+|---|---|---|
+| 1 | `/ticket <N>` | Checks the ticket is ready (asking on the issue if not, like `/write-tests`). Then, on a new `ticket-<N>-<slug>` branch: writes the failing tests from the ticket, checks each fails for the right reason, **freezes** them (records a fingerprint of `tests/`), implements, checks everything passes and the fingerprint still matches, and drafts the PR and comment, with the failing-then-passing evidence |
+| 2 | Review the one diff (tests and code). Commit and push, open the PR **as a draft**, apply `tests-approved` (approving tests and code together), **then** mark the PR ready, post the comment, and apply `ready-for-review` once CI is green | |
+| 3 | If CI fails, run `/implement <N>`. The tests are approved by then | Fixes it as usual |
+
+Marking the PR ready *after* applying `tests-approved` matters: the `approved-tests` check only
+re-runs on PR events, so this way it runs against the approval you just recorded.
+
+Claude still never applies `tests-approved`, and the approved-tests check works exactly as before.
+What's different is that you approve once, at the end, so you're reviewing the tests and the code
+together. The frozen fingerprint and the evidence in the PR show the tests were written, and failed,
+before the code existed.
+
 The commands are in `.claude/commands/`. Shared rules for every phase are in `CLAUDE.md`.
 Edit either to tune how Claude works.
 
