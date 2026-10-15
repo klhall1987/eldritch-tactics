@@ -347,12 +347,135 @@ def shell(source, name, keep_face, offset, mat=None, smoothing=0, min_z=None, ed
     return obj
 
 
-def bind_weighted(rig, body, weighted, rigid, name, keep_body_face=None):
+# Landmarks of art/base/human_male_realistic.blend's body (in its own space, before scaling): where
+# its joints are, in its A-pose. Measured from the mesh.
+MALE_SHOULDER, MALE_ELBOW, MALE_WRIST, MALE_HAND = (0.165, 0, 1.385), (0.305, 0, 1.065), (0.385, 0, 0.865), (0.44, 0, 0.73)
+MALE_HIP, MALE_KNEE, MALE_ANKLE, MALE_TOE = (0.09, 0, 0.9), (0.14, 0, 0.48), (0.19, 0.02, 0.08), (0.21, -0.12, 0.02)
+MALE_EYE = (0.0329, -0.1222, 1.5737)  # his left eye's centre (+X is his left)
+
+
+def load_male_body(arm_down_degrees=17.0, legs_in_degrees=5.0):
+    """Loads the CC0 male base body and its eyes, applies its sculpt, and re-poses it: arms brought
+    down by `arm_down_degrees` (from its ~23 degree A-pose) and legs in by `legs_in_degrees`, baked
+    in. Returns (body, eye_l, eye_r, part), where part(point) names the body part nearest a point
+    (spine, head, upperarm, forearm, hand, thigh, shin or foot) so clothes can be cut from it."""
+    from mathutils import kdtree
+
+    body, eye_l, eye_r = load_objects(
+        GAME_DIR / "art" / "base" / "human_male_realistic.blend",
+        ["GEO-body_male_realistic", "GEO-body_male_realistic.eye.L", "GEO-body_male_realistic.eye.R"])
+    body.location = (0, 0, 0)
+    bpy.context.view_layer.update()
+    for eye in (eye_l, eye_r):
+        world = eye.matrix_world.copy()
+        eye.parent = None
+        eye.data.transform(world)
+        eye.matrix_world = Matrix.Identity(4)
+    if body.modifiers:
+        try:
+            with bpy.context.temp_override(object=body, active_object=body):
+                bpy.ops.object.multires_base_apply(modifier=body.modifiers[0].name)
+        except RuntimeError:
+            pass
+        body.modifiers.clear()
+
+    def mirror(p, side):
+        return (p[0] * side, p[1], p[2])
+
+    bones = [("spine", (0, 0, 0.85), (0, 0, 1.35), None), ("head", (0, 0, 1.35), (0, 0, 1.72), "spine")]
+    for side, s in ((1, "l"), (-1, "r")):
+        bones += [
+            (f"upperarm_{s}", mirror(MALE_SHOULDER, side), mirror(MALE_ELBOW, side), "spine"),
+            (f"forearm_{s}", mirror(MALE_ELBOW, side), mirror(MALE_WRIST, side), f"upperarm_{s}"),
+            (f"hand_{s}", mirror(MALE_WRIST, side), mirror(MALE_HAND, side), f"forearm_{s}"),
+            (f"thigh_{s}", mirror(MALE_HIP, side), mirror(MALE_KNEE, side), "spine"),
+            (f"shin_{s}", mirror(MALE_KNEE, side), mirror(MALE_ANKLE, side), f"thigh_{s}"),
+            (f"foot_{s}", mirror(MALE_ANKLE, side), mirror(MALE_TOE, side), f"shin_{s}"),
+        ]
+    pose_rig = armature("repose", bones)
+    auto_weights(pose_rig, body)
+    for side, s in ((1, "l"), (-1, "r")):
+        for bone, pivot, degrees in ((f"upperarm_{s}", MALE_SHOULDER, arm_down_degrees),
+                                     (f"thigh_{s}", MALE_HIP, legs_in_degrees)):
+            pb = pose_rig.pose.bones[bone]
+            pb.matrix = rotate_about_y(mirror(pivot, side), math.radians(degrees) * side) @ pb.bone.matrix_local
+    bpy.context.view_layer.update()
+    apply_modifiers(body)
+
+    names = {g.index: g.name for g in body.vertex_groups}
+    labels = []
+    for v in body.data.vertices:
+        best = max(v.groups, key=lambda g: g.weight, default=None)
+        labels.append(names[best.group].rsplit("_", 1)[0] if best else "spine")
+    body.parent = None
+    body.vertex_groups.clear()
+    bpy.data.objects.remove(pose_rig)
+    tree = kdtree.KDTree(len(body.data.vertices))
+    for i, v in enumerate(body.data.vertices):
+        tree.insert(v.co, i)
+    tree.balance()
+    scale = [Vector((1, 1, 1))]  # updated by scale_body, so part() keeps working after scaling
+
+    def part(p):
+        return labels[tree.find(Vector((p[0] / scale[0].x, p[1] / scale[0].y, p[2] / scale[0].z)))[1]]
+
+    part.scale = scale
+    return body, eye_l, eye_r, part
+
+
+def scale_body(objects, part, sx, sy, sz):
+    """Scales a base body (and its eyes etc.) in place; `part` from load_male_body keeps working."""
+    for obj in objects:
+        obj.data.transform(Matrix.Diagonal((sx, sy, sz, 1.0)))
+    part.scale[0] = Vector((sx, sy, sz))
+
+
+def smooth_weights(obj, passes):
+    """Blurs `obj`'s vertex-group weights over its edges (each pass mixes every vertex half-and-half
+    with its neighbours' average), then renormalises them: softer, wider bends at the joints."""
+    import numpy as np
+
+    mesh = obj.data
+    groups = list(obj.vertex_groups)
+    count = len(mesh.vertices)
+    weights = np.zeros((count, len(groups)))
+    for v in mesh.vertices:
+        for g in v.groups:
+            weights[v.index, g.group] = g.weight
+    edges = np.array([e.vertices[:] for e in mesh.edges])
+    degree = np.bincount(edges.ravel(), minlength=count).astype(float)
+    for _ in range(passes):
+        total = np.zeros_like(weights)
+        np.add.at(total, edges[:, 0], weights[edges[:, 1]])
+        np.add.at(total, edges[:, 1], weights[edges[:, 0]])
+        neighbours = total / np.maximum(degree, 1.0)[:, None]
+        weights = np.where(degree[:, None] > 0, 0.5 * weights + 0.5 * neighbours, weights)
+    weights /= np.maximum(weights.sum(axis=1, keepdims=True), 1e-9)
+    for gi, group in enumerate(groups):
+        keep = np.nonzero(weights[:, gi] > 0.001)[0]
+        drop = np.nonzero(weights[:, gi] <= 0.001)[0]
+        if len(drop):
+            group.remove(drop.tolist())
+        for i in keep:
+            group.add([int(i)], float(weights[i, gi]), "REPLACE")
+    return obj
+
+
+def rotate_about_y(point, angle):
+    """A rotation about the world Y axis (front-back) through `point`."""
+    p = Vector(point)
+    return Matrix.Translation(p) @ Matrix.Rotation(angle, 4, "Y") @ Matrix.Translation(-p)
+
+
+def bind_weighted(rig, body, weighted, rigid, name, keep_body_face=None, weight_smoothing=0):
     """Joins a body and its parts into one mesh named `name`, skinned to `rig`: the body by automatic
     weights, `weighted` parts (clothes, hair) by the weights of the body beneath them, and `rigid`
     parts (made with `bone=`) to their single bone. If `keep_body_face(face_centre)` is given, body
-    faces it rejects (hidden under clothes) are removed after the clothes have taken their weights."""
+    faces it rejects (hidden under clothes) are removed after the clothes have taken their weights.
+    `weight_smoothing` passes blur the body's weights first, widening the bends at the joints."""
     auto_weights(rig, body)
+    if weight_smoothing:
+        smooth_weights(body, weight_smoothing)
     for part in weighted:
         transfer_weights(body, part)
     if keep_body_face is not None:

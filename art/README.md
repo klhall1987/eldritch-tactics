@@ -34,7 +34,7 @@ their `.import` files) the first time it imports it: commit those too.
     5,000-20,000 triangles a character, and more for `--combat` versions. New downloaded assets
     must be CC0 (or as free), approved by the owner, committed under `art/base/` and recorded in
     its README; scripts never download anything. Pass `preview_colors="TEXTURE"` to `kit.export()`
-    so the previews show the textures. The detective is the first; the cultist follows.
+    so the previews show the textures. Both the detective and the cultist are built this way.
   - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
