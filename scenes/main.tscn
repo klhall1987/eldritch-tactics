@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
@@ -6,6 +6,11 @@
 [ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="4_cultist"]
 [ext_resource type="Script" path="res://scripts/follow_camera.gd" id="5_follow"]
 [ext_resource type="Script" path="res://scripts/flicker_light.gd" id="6_flicker"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="7_player"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.25
+height = 1.8
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -23,8 +28,15 @@ environment = SubResource("Environment_garage")
 
 [node name="Garage" parent="." instance=ExtResource("2_garage")]
 
-[node name="Detective" parent="." instance=ExtResource("3_detective")]
+[node name="Player" type="CharacterBody3D" parent="."]
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
+script = ExtResource("7_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Detective" parent="Player" instance=ExtResource("3_detective")]
 
 [node name="Cultist" parent="." instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
@@ -44,4 +56,4 @@ current = true
 size = 4.0
 far = 100.0
 script = ExtResource("5_follow")
-target_path = NodePath("../Detective")
+target_path = NodePath("../Player/Detective")
