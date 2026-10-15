@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
 [ext_resource type="PackedScene" uid="uid://dc2js3wb5xuy3" path="res://assets/models/characters/detective_combat.glb" id="2_detective"]
-[ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="3_cultist"]
+[ext_resource type="PackedScene" uid="uid://bsy0voq5d0a77" path="res://assets/models/characters/cultist_combat.glb" id="3_cultist"]
 [ext_resource type="Script" path="res://scripts/flicker_light.gd" id="4_flicker"]
 
 [sub_resource type="Environment" id="Environment_combat"]
