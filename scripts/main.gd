@@ -1,9 +1,9 @@
 extends Node3D
-## The game's root scene: the garage, with the detective and a cultist standing in it.
+## The game's root scene: the garage, with the detective (moved by Player) and a cultist in it.
 
 
 func _ready() -> void:
-	for character: Node in [$Detective, $Cultist]:
+	for character: Node in [$Player/Detective, $Cultist]:
 		var player := character.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 		player.play("idle")
 	# BulbLight sits inside the bulb mesh: if the bulb (or its cord) cast shadows, they would
