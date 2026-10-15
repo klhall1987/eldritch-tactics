@@ -26,7 +26,9 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if _encounter_running:
+	# No new encounter once one has started, or while combat runs (walking past an enemy on his turn
+	# isn't a bump).
+	if _encounter_running or $CombatController.running:
 		return
 	var player := $Player as CharacterBody3D
 	for enemy: Node3D in _touch_areas:

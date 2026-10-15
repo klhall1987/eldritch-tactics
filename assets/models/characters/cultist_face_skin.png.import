@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ck6uon0gp6erp"
-path="res://.godot/imported/cultist_face_skin.png-8eac4101b163478eeb4f915dd9aeae5e.ctex"
+path.s3tc="res://.godot/imported/cultist_face_skin.png-8eac4101b163478eeb4f915dd9aeae5e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "68891816ce32d7de22bd5ef0141f67e7"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/characters/cultist_face_skin.png"
-dest_files=["res://.godot/imported/cultist_face_skin.png-8eac4101b163478eeb4f915dd9aeae5e.ctex"]
+dest_files=["res://.godot/imported/cultist_face_skin.png-8eac4101b163478eeb4f915dd9aeae5e.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

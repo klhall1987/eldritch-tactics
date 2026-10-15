@@ -227,10 +227,13 @@ func test_clicking_a_reachable_point_walks_him_there():
 	if animation == null:
 		return
 	var before: float = controller.movement_left
+	var clicked_at := body.global_position
 	await _click(main, NEAR)
 	await wait_physics_frames(5)
 	assert_eq(animation.current_animation, "walk", "he plays walk on the way")
-	var walked := await _walk_distance(body, animation)
+	# Count from the click: add what he covered (in a straight line, on the first leg) before counting.
+	var walked := _flat(body.global_position).distance_to(_flat(clicked_at))
+	walked += await _walk_distance(body, animation)
 	assert_lt(_flat(body.global_position).distance_to(_flat(NEAR)), 0.3, "he ends at the clicked point")
 	assert_eq(animation.current_animation, "idle", "he ends in idle")
 	assert_gt(walked, 1.5, "he walked the 2 m there (%.2f m)" % walked)
@@ -289,8 +292,11 @@ func test_paths_go_around_props():
 	var before: float = controller.movement_left
 	var animation := _animation(body)
 	var track := []
+	var clicked_at := body.global_position
 	await _click(main, NORTH_OF_PROP)
-	var walked := await _walk_distance(body, animation, 8.0, track)
+	# Count from the click: add what he covered (in a straight line, on the first leg) before counting.
+	var walked := _flat(body.global_position).distance_to(_flat(clicked_at))
+	walked += await _walk_distance(body, animation, 8.0, track)
 	assert_lt(_flat(body.global_position).distance_to(_flat(NORTH_OF_PROP)), 0.3, "he walks around to the point")
 	for point: Vector3 in track:
 		assert_false(_blocked(blockers, point), "he never walks into a wall or prop (at %s)" % point)
