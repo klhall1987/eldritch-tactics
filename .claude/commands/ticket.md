@@ -7,9 +7,9 @@ Take ticket #$ARGUMENTS from ticket to finished implementation **in one run**: c
 failing tests, implement until they pass, and hand me one diff to review. Follow the ticket rules in
 CLAUDE.md. This replaces running `/write-tests` and then `/implement`, with one review instead of two.
 
-I still approve the tests, but only once, at the end, together with the code: you never apply
-`tests-approved`. So the tests have to earn that approval on their own. Write them from the ticket
-**before** any implementation, prove they fail for the right reasons, and then **freeze** them.
+I review the tests once, at the end, together with the code. So the tests have to earn trust on their
+own. Write them from the ticket **before** any implementation, prove they fail for the right reasons,
+and then **freeze** them.
 
 ## 1. Read and check the ticket
 
@@ -78,18 +78,14 @@ from Out of scope.
    - `Closes #$ARGUMENTS`
    - what changed and why
    - the criteria-to-tests table
-   - the interface and measurement choices the tests make (approving the tests approves them)
+   - the interface and measurement choices the tests make (accepting the PR accepts them)
    - **evidence:** each new test's failure message before implementing, that all tests pass after, and
      the matching test fingerprints
 3. Write a one-paragraph issue comment to `.agent/comment.md`.
-4. Tell me it's ready for review: what was built, the choices the tests made, anything I should look
-   at closely, and screenshots or previews if it's visible. Then list my next steps, **in this order**
-   (the order matters: the approved-tests check only re-runs on PR events, so the PR must be marked
-   ready *after* the approval is recorded):
+4. Apply `in-progress`: `bash tools/github.sh label $ARGUMENTS in-progress`.
+5. Tell me it's ready for review: what was built, the choices the tests made, anything I should look
+   at closely, and screenshots or previews if it's visible. Then list my next steps:
    - review the diff (tests and code), then commit and push the branch (one commit is fine)
-   - open the PR **as a draft** with `.agent/pr.md`
-   - apply `tests-approved` on the issue. This approves the tests and records the commit.
-   - mark the PR ready for review. That re-runs the approved-tests check, now against your approval.
+   - open the PR with `.agent/pr.md`
    - post `.agent/comment.md`, and apply `ready-for-review` once CI is green
-5. If CI fails after I push, I'll run `/implement $ARGUMENTS`. The tests are approved by then, so it
-   picks up from there.
+6. If CI fails after I push, I'll run `/implement $ARGUMENTS`, which picks up from there.

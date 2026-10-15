@@ -8,7 +8,7 @@ body:
       value: |
         A ticket describes **exactly one behavior** that a unit test can check without anyone playing the game.
         Once filed, the ticket moves through status labels (see `docs/WORKFLOW.md`).
-        Only the repository owner's tickets go through this process, and only the owner can apply **tests-approved**, the approval gate.
+        Only the repository owner's tickets go through this process.
 
   - type: textarea
     id: behavior
