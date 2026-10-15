@@ -16,6 +16,10 @@ Follow the ticket rules in CLAUDE.md.
   - If it's a pull request, isn't by the owner, or has no `feature` label, stop and tell me why.
 - If `origin/ticket-$ARGUMENTS-*` branches already exist, this run revises tests the owner has
   commented on. Take their feedback from the issue comments.
+- If the ticket is part of a queue (its Context has a `Queue: ... Depends on #<D>` line), check
+  each dependency with `bash tools/github.sh issue <D>`. If one is still open, its code isn't on
+  `main` yet, so tests written now may not build on it. Stop and ask me in chat whether to go
+  ahead anyway; don't comment on the issue or change labels for this.
 
 ## 2. Check the ticket is ready
 
