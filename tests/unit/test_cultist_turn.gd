@@ -202,7 +202,8 @@ func test_cultist_walks_towards_him_around_props_and_stops_at_reach():
 	assert_between(walked, 5.0, 6.1, "it uses its movement, and no more (%.2f m)" % walked)
 	var closer := start_distance - _flat(body.global_position).distance_to(_flat(cultist.global_position))
 	assert_gt(closer, 4.0, "it ends much closer to him (%.2f m closer)" % closer)
-	assert_eq(_attacks, [], "out of reach after moving, it doesn't attack")
+	var ended_in_reach := _gap(body, cultist, _body_radius(cultist)) <= REACH
+	assert_eq(_attacks.size(), 1 if ended_in_reach else 0, "it attacks if and only if it ended within reach")
 
 
 # Given the cultist ends its movement within reach (1.5 m between their bodies' edges), when its

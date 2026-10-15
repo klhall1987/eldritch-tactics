@@ -10,6 +10,8 @@ extends Node
 ## (double dice) and a natural 1 always a miss.
 ## A hit takes its damage off the target's hit points; at 0 a combatant is defeated and leaves the turn
 ## order. Combat ends in victory when no enemy is left standing, or in defeat if the detective falls.
+## Enemies play their own turns: after a short pause an enemy shambles along a path towards the
+## detective (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
 ## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_bonus`,
 ## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`, `max_hit_points`).
 
@@ -38,6 +40,11 @@ const BODY_HEIGHT := 1.8
 ## Path preview colours, within his movement and beyond it.
 @export var reachable_colour := Color(0.95, 0.85, 0.45)
 @export var out_of_reach_colour := Color(0.85, 0.2, 0.15)
+## Enemy turns: how long an enemy pauses before acting, how fast it walks (metres per second), and
+## how long it pauses before ending its turn.
+@export var enemy_think_seconds := 1.5
+@export var enemy_speed := 2.0
+@export var enemy_end_seconds := 0.5
 
 ## Every die comes from here, so seeding it fixes the dice.
 var rng := RandomNumberGenerator.new()
@@ -66,6 +73,11 @@ var defeated: Array[Node3D] = []
 var preview_path := PackedVector3Array()
 var preview_length := 0.0
 var preview_reachable := false
+
+enum EnemyStep { NONE, THINK, WALK, DONE }
+var _enemy_step := EnemyStep.NONE
+var _enemy_timer := 0.0
+var _enemy_path := PackedVector3Array()  # the points the active enemy still has to walk to
 
 @onready var detective := get_node_or_null(detective_path) as Node3D
 @onready var _preview := get_node_or_null(path_preview_node) as MeshInstance3D
@@ -276,9 +288,102 @@ func _hide_preview() -> void:
 		_preview.visible = false
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if running and active == detective and Input.is_action_just_pressed("end_turn"):
 		end_turn()
+	elif running and active != detective and _enemy_step != EnemyStep.NONE:
+		_play_enemy_turn(delta)
+
+
+## Plays the active enemy's turn a tick at a time: think, walk towards the detective, attack, end.
+func _play_enemy_turn(delta: float) -> void:
+	match _enemy_step:
+		EnemyStep.THINK:
+			_enemy_timer -= delta
+			if _enemy_timer <= 0.0:
+				_enemy_path = _approach_path(active)
+				if _enemy_path.is_empty():
+					_finish_enemy_move()
+				else:
+					_enemy_step = EnemyStep.WALK
+					_play_animation(active, "walk")
+		EnemyStep.WALK:
+			var step := enemy_speed * delta
+			while step > 0.0 and not _enemy_path.is_empty():
+				var to_next := _enemy_path[0] - active.global_position
+				to_next.y = 0.0
+				var distance := to_next.length()
+				if distance > 0.0001:
+					active.rotation.y = atan2(to_next.x, to_next.z)  # models face their +Z
+				var moved := minf(step, distance)
+				active.global_position += to_next.normalized() * moved if distance > 0.0001 else Vector3.ZERO
+				movement_left = maxf(movement_left - moved, 0.0)
+				step -= moved
+				if moved >= distance:
+					_enemy_path.remove_at(0)
+			if _enemy_path.is_empty():
+				_play_animation(active, "idle")
+				_finish_enemy_move()
+		EnemyStep.DONE:
+			_enemy_timer -= delta
+			if _enemy_timer <= 0.0:
+				_enemy_step = EnemyStep.NONE
+				end_turn()
+
+
+## After moving: attack the detective if he's within reach, then pause before the turn ends.
+func _finish_enemy_move() -> void:
+	if can_attack(active, detective):
+		attack(active, detective)
+	_enemy_step = EnemyStep.DONE
+	_enemy_timer = enemy_end_seconds
+
+
+## The points `enemy` walks through towards the detective (not counting where it stands): along a
+## path round walls and props, stopping once it's comfortably within reach or out of movement.
+## Empty if it's already within reach or can't move.
+func _approach_path(enemy: Node3D) -> PackedVector3Array:
+	var walk := PackedVector3Array()
+	if _edge_gap(enemy, detective) <= ATTACK_REACH:
+		return walk
+	var map := _navigation.get_navigation_map() if _navigation != null else enemy.get_world_3d().navigation_map
+	var path := NavigationServer3D.map_get_path(map, enemy.global_position, detective.global_position, true)
+	# Aim a little inside reach, measured centre to centre.
+	var stop_at := ATTACK_REACH - 0.25 + float(enemy.get_meta("body_radius", 0.0)) + float(detective.get_meta("body_radius", 0.0))
+	var budget := movement_left
+	var here := Vector3(enemy.global_position.x, 0, enemy.global_position.z)
+	for i in range(1, path.size()):
+		var target := Vector3(path[i].x, 0, path[i].z)
+		var leg := here.distance_to(target)
+		var travelled := 0.0
+		var stopped := false
+		# Walk the leg in small steps, stopping at reach or when the movement runs out.
+		while travelled < leg:
+			var next := minf(travelled + 0.05, leg)
+			if next > budget:
+				next = budget
+				stopped = true
+			var point := here.lerp(target, next / leg)
+			if Vector2(point.x - detective.global_position.x, point.z - detective.global_position.z).length() <= stop_at:
+				walk.append(point)
+				return walk
+			travelled = next
+			if stopped:
+				break
+		budget -= travelled
+		if stopped or budget <= 0.0:
+			if travelled > 0.0:
+				walk.append(here.lerp(target, travelled / leg))
+			return walk
+		walk.append(target)
+		here = target
+	return walk
+
+
+func _play_animation(combatant: Node, clip: StringName) -> void:
+	var players := combatant.find_children("*", "AnimationPlayer", true, false)
+	if not players.is_empty() and players[0].current_animation != clip:
+		players[0].play(clip)
 
 
 ## Starts combat between `fighters`: rolls initiative for each (in the order given), sets the turn
@@ -314,6 +419,9 @@ func _start_turn(combatant: Node3D) -> void:
 	actions_left = 1
 	bonus_actions_left = 1
 	_hide_preview()
+	_enemy_path = PackedVector3Array()
+	_enemy_step = EnemyStep.NONE if combatant == detective else EnemyStep.THINK
+	_enemy_timer = enemy_think_seconds
 	turn_started.emit(active)
 
 
