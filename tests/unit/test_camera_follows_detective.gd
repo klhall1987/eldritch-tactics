@@ -4,7 +4,7 @@ extends GutTest
 
 const ANGLE_TOLERANCE := 1.0  # degrees
 const CENTRE_TOLERANCE := 0.05  # fraction of the viewport's size
-const MAX_SIZE := 6.5  # metres
+const MAX_SIZE := 4.0  # metres
 
 
 # Instantiates the main scene into the tree, or returns null (after failing the test).
@@ -16,6 +16,23 @@ func _main() -> Node3D:
 		return null
 	var main := packed.instantiate()
 	add_child_autofree(main)
+	return main as Node3D
+
+
+# Instantiates the main scene inside a viewport the size of the project's default window, so
+# "in view" is judged at the game's real size rather than the tiny headless test viewport.
+func _main_in_game_window() -> Node3D:
+	var path: String = ProjectSettings.get_setting("application/run/main_scene")
+	var packed: PackedScene = load(path)
+	assert_not_null(packed, "the main scene (%s) loads" % path)
+	if packed == null:
+		return null
+	var window := SubViewport.new()
+	window.size = Vector2i(ProjectSettings.get_setting("display/window/size/viewport_width"),
+		ProjectSettings.get_setting("display/window/size/viewport_height"))
+	add_child_autofree(window)
+	var main := packed.instantiate()
+	window.add_child(main)
 	return main as Node3D
 
 
@@ -43,7 +60,7 @@ func _assert_centred(camera: Camera3D, detective: Node3D, when: String) -> void:
 
 # Given the main scene, when the camera is inspected, then it is still the current orthographic
 # camera at the isometric angle (30 degrees down, 45 degrees around), and its orthographic size is
-# at most 6.5 m (zoomed in from the current 10.5 m).
+# at most 4 m (zoomed in from the original 10.5 m).
 func test_camera_is_zoomed_in_at_the_isometric_angle():
 	var main := _main()
 	if main == null:
@@ -104,9 +121,10 @@ func test_camera_follows_the_detective():
 
 
 # Given the main scene has run its first frame, when the detective's and the cultist's feet and
-# heads are tested against the camera, then all four points are inside its view.
+# heads are tested against the camera, in a viewport of the default window size, then all four
+# points are inside its view.
 func test_camera_sees_both_characters_after_first_frame():
-	var main := _main()
+	var main := _main_in_game_window()
 	if main == null:
 		return
 	await wait_frames(1)
