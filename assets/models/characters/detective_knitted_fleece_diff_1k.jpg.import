@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jjjveb3b6f3e"
-path.s3tc="res://.godot/imported/detective_combat_trousers_twill.png-e08bd4fea03ca0af64c004bd0fa07bc2.s3tc.ctex"
+uid="uid://qd4e3lpsmbt4"
+path.s3tc="res://.godot/imported/detective_knitted_fleece_diff_1k.jpg-e52b295ea15836ef37f1dcd90edbe3de.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "7ba4a4b7e9bdda6d684801a124048f9d"
+"md5": "b5acb28803c9c87a8c5f28bb88cdc526"
 }
 
 [deps]
 
-source_file="res://assets/models/characters/detective_combat_trousers_twill.png"
-dest_files=["res://.godot/imported/detective_combat_trousers_twill.png-e08bd4fea03ca0af64c004bd0fa07bc2.s3tc.ctex"]
+source_file="res://assets/models/characters/detective_knitted_fleece_diff_1k.jpg"
+dest_files=["res://.godot/imported/detective_knitted_fleece_diff_1k.jpg-e52b295ea15836ef37f1dcd90edbe3de.s3tc.ctex"]
 
 [params]
 
