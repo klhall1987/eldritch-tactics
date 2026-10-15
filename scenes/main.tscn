@@ -55,6 +55,7 @@ metadata/damage_dice = 1
 metadata/damage_die = 8
 metadata/damage_bonus = 2
 metadata/body_radius = 0.25
+metadata/max_hit_points = 20
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1559143384]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -72,6 +73,7 @@ metadata/damage_dice = 1
 metadata/damage_die = 6
 metadata/damage_bonus = 1
 metadata/body_radius = 0.31
+metadata/max_hit_points = 12
 
 [node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 

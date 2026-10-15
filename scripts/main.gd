@@ -2,6 +2,7 @@ extends Node3D
 ## The game's root scene: the garage, with the detective (moved by Player) and a cultist in it.
 ## Walking the detective into an enemy (moving towards it inside its touch area) starts an
 ## encounter, and turn-based combat begins right there (CombatController).
+## Winning the fight frees him to walk again; defeated enemies are no longer bumped into.
 
 ## Emitted once, when the detective first bumps into an enemy.
 signal encounter_started(enemy: Node3D)
@@ -22,6 +23,7 @@ func _ready() -> void:
 	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
 		if is_ancestor_of(enemy):
 			_touch_areas[enemy] = enemy.find_children("*", "Area3D", true, false)[0]
+	$CombatController.victory.connect(_on_victory)
 	print("SMOKE_MARKER: main scene ready")
 
 
@@ -52,3 +54,11 @@ func _start_encounter(enemy: Node3D) -> void:
 	$Player.controllable = false
 	encounter_started.emit(enemy)
 	$CombatController.start_combat([$Player, enemy])
+
+
+## The fight is won: he walks freely again, and the defeated enemies are no longer encounters.
+func _on_victory() -> void:
+	for enemy: Node3D in $CombatController.defeated:
+		_touch_areas.erase(enemy)
+	_encounter_running = false
+	$Player.controllable = true
