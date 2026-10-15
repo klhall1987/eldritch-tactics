@@ -1,14 +1,10 @@
 extends Node3D
 ## The game's root scene: the garage, with the detective (moved by Player) and a cultist in it.
 ## Walking the detective into an enemy (moving towards it inside its touch area) starts an
-## encounter and pulls him into combat.
+## encounter, and turn-based combat begins right there (CombatController).
 
 ## Emitted once, when the detective first bumps into an enemy.
 signal encounter_started(enemy: Node3D)
-## Emitted when the game wants to switch to the combat screen.
-signal combat_requested(scene_path: String)
-
-const COMBAT_SCENE := "res://scenes/combat.tscn"
 
 var _encounter_running := false
 var _touch_areas := {}  # enemy -> its touch Area3D
@@ -53,8 +49,4 @@ func _start_encounter(enemy: Node3D) -> void:
 	_encounter_running = true
 	$Player.controllable = false
 	encounter_started.emit(enemy)
-	combat_requested.emit(COMBAT_SCENE)
-	# Only change scene for real when this is the running game's scene. Anywhere else (in a test,
-	# under the GUT runner) the request is just the signal above.
-	if get_tree().current_scene == self:
-		get_tree().change_scene_to_file.call_deferred(COMBAT_SCENE)
+	$CombatController.start_combat([$Player, enemy])

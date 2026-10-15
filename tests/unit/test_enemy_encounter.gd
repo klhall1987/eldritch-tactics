@@ -1,12 +1,10 @@
 extends GutTest
 # Bumping into an enemy (ticket #31): the cultist is an enemy with a touch area; walking the
-# detective into it starts an encounter once, stops his movement, and requests the combat screen.
+# detective into it starts an encounter once and stops his movement.
 #
-# The main scene announces the encounter with `encounter_started(enemy)` and requests the switch
-# with `combat_requested(scene_path)`. It only changes scene for real when it is the tree's current
-# scene; in tests it never is (the GUT runner is), so the request can be watched safely.
+# The main scene announces the encounter with `encounter_started(enemy)`. Since #45, combat then
+# starts in place (test_overworld_combat.gd) instead of switching to the combat screen.
 
-const COMBAT_PATH := "res://scenes/combat.tscn"
 const ACTIONS := ["move_up", "move_down", "move_left", "move_right"]
 const WALK_MINUS_Z := ["move_up", "move_right"]  # screen up+right walks along world -Z (#28)
 
@@ -175,26 +173,3 @@ func test_movement_stops_once_the_encounter_starts():
 	var moved := body.global_position.distance_to(held_at)
 	assert_lt(moved, 0.01, "he doesn't move once the encounter has started (moved %.3f m)" % moved)
 
-
-# Given an encounter has started, when the game handles it, then it requests a switch to
-# res://scenes/combat.tscn through a single, observable step (for example a signal or one method on
-# the main scene), so that the switch can be checked without the test's own scene being replaced.
-func test_encounter_requests_the_combat_screen():
-	assert_true(ResourceLoader.exists(COMBAT_PATH), "the combat screen exists")
-	var main := await _main()
-	if main == null:
-		return
-	assert_true(main.has_signal("combat_requested"), "the main scene has a combat_requested signal")
-	var body := _body(main)
-	var cultist := _node(main, "Cultist")
-	if body == null or cultist == null:
-		return
-	watch_signals(main)
-	var runner := get_tree().current_scene
-	await _approach(main, body, cultist)
-	_press(WALK_MINUS_Z)
-	await wait_physics_frames(120)
-	assert_signal_emit_count(main, "combat_requested", 1, "the combat screen is requested once")
-	if get_signal_emit_count(main, "combat_requested") > 0:
-		assert_signal_emitted_with_parameters(main, "combat_requested", [COMBAT_PATH])
-	assert_eq(get_tree().current_scene, runner, "the test's own scene wasn't replaced")
