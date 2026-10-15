@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/follow_camera.gd" id="5_follow"]
 [ext_resource type="Script" path="res://scripts/flicker_light.gd" id="6_flicker"]
 [ext_resource type="Script" path="res://scripts/player.gd" id="7_player"]
+[ext_resource type="Script" path="res://scripts/room_collision.gd" id="8_room"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.25
@@ -27,6 +28,10 @@ script = ExtResource("1_main")
 environment = SubResource("Environment_garage")
 
 [node name="Garage" parent="." instance=ExtResource("2_garage")]
+
+[node name="RoomCollision" type="StaticBody3D" parent="."]
+script = ExtResource("8_room")
+garage_path = NodePath("../Garage")
 
 [node name="Player" type="CharacterBody3D" parent="."]
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)

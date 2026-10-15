@@ -6,7 +6,7 @@ extends CharacterBody3D
 ## Walking speed in metres per second.
 @export var speed := 2.5
 ## How quickly he turns to face his direction of travel (higher is snappier).
-@export var turn_rate := 15.0
+@export var turn_rate := 25.0
 
 var _animation: AnimationPlayer
 
@@ -22,10 +22,16 @@ func _physics_process(delta: float) -> void:
 	var direction := _screen_to_floor(input)
 	velocity = direction * speed
 	move_and_slide()
+	global_position.y = 0.0  # he walks on the floor; sliding off a box edge must not lift him
 
 	var moving := direction.length() > 0.01
 	if moving:
-		var target := atan2(direction.x, direction.z)  # the model faces its +Z (MODEL_FRONT)
+		# Face where he actually goes: along a wall he turns to the way he's sliding, not into it.
+		var travel := get_real_velocity()
+		travel.y = 0.0
+		# (Only a real slide counts: a twitch on hitting something head-on mustn't swing him round.)
+		var heading := travel if travel.length() > speed * 0.5 else direction
+		var target := atan2(heading.x, heading.z)  # the model faces its +Z (MODEL_FRONT)
 		rotation.y = lerp_angle(rotation.y, target, 1.0 - exp(-turn_rate * delta))
 	_play("walk" if moving else "idle")
 
