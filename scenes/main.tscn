@@ -17,6 +17,7 @@
 [ext_resource type="Resource" path="res://assets/items/jeans_blue.tres" id="15_jeans"]
 [ext_resource type="Resource" path="res://assets/items/sneakers_dark.tres" id="16_sneakers"]
 [ext_resource type="Resource" path="res://assets/items/sweater_grey.tres" id="17_sweater"]
+[ext_resource type="Script" path="res://scripts/inventory_screen.gd" id="18_inventory_screen"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -135,4 +136,12 @@ outline_size = 12
 
 [node name="CombatHUD" type="CanvasLayer" parent="."]
 script = ExtResource("11_hud")
+controller_path = NodePath("../CombatController")
+
+[node name="InventoryScreen" type="CanvasLayer" parent="."]
+layer = 2
+script = ExtResource("18_inventory_screen")
+inventory_path = NodePath("../Player/Inventory")
+outfit_path = NodePath("../Player/Outfit")
+player_path = NodePath("../Player")
 controller_path = NodePath("../CombatController")
