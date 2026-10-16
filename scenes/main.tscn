@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://b38re63lr3m26" path="res://scripts/room_collision.gd" id="8_room"]
 [ext_resource type="Script" path="res://scripts/combat_controller.gd" id="9_combat"]
 [ext_resource type="Script" path="res://scripts/room_navigation.gd" id="10_nav"]
+[ext_resource type="Script" path="res://scripts/combat_hud.gd" id="11_hud"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -48,6 +49,7 @@ room_path = NodePath("../RoomCollision")
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
 script = ExtResource("7_player")
 metadata/initiative_bonus = 2
+metadata/display_name = "Detective"
 metadata/movement = 9.0
 metadata/attack_bonus = 4
 metadata/armour_class = 13
@@ -66,6 +68,7 @@ shape = SubResource("CapsuleShape3D_player")
 [node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
 metadata/initiative_bonus = 1
+metadata/display_name = "Cultist"
 metadata/movement = 6.0
 metadata/attack_bonus = 3
 metadata/armour_class = 11
@@ -113,3 +116,7 @@ billboard = 1
 no_depth_test = true
 font_size = 48
 outline_size = 12
+
+[node name="CombatHUD" type="CanvasLayer" parent="."]
+script = ExtResource("11_hud")
+controller_path = NodePath("../CombatController")
