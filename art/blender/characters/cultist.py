@@ -296,6 +296,9 @@ kit.animate(rig, "idle", {
     60: {"spine": (0, 0, 0), "head": (0, 0, 0)},
 })
 
+SWING = -95  # degrees an arm turns about its own X to fling up and forward (negative: forward)
+FPS = kit.FPS
+
 # Walk: legs and arms swing in opposition, in place (1 s).
 kit.animate(rig, "walk", {
     0: {"leg_l": (22, 0, 0), "leg_r": (-22, 0, 0), "arm_l": (-15, 0, 0), "arm_r": (15, 0, 0), "spine": (0, 3, 0)},
@@ -303,4 +306,26 @@ kit.animate(rig, "walk", {
     30: {"leg_l": (22, 0, 0), "leg_r": (-22, 0, 0), "arm_l": (-15, 0, 0), "arm_r": (15, 0, 0), "spine": (0, 3, 0)},
 })
 
-kit.export(model_name="cultist_combat" if COMBAT else "cultist", kind="characters", preview_colors="TEXTURE")
+# Attack (1.2 s): two fist swings, the left arm then the right, each flung up and forward from the
+# shoulder (its arms are single bones, with no elbow), its chest leaning into the blow. It starts and
+# ends in the pose idle starts in; its legs don't move.
+kit.animate(rig, "attack", {
+    0: {},
+    int(0.3 * FPS): {"arm_l": (SWING, 0, 0), "chest": (8, 0, -10), "spine": (4, 0, 0)},
+    int(0.55 * FPS): {},
+    int(0.85 * FPS): {"arm_r": (SWING, 0, 0), "chest": (8, 0, 10), "spine": (4, 0, 0)},
+    int(1.2 * FPS): {},
+}, loop=False)
+
+# Hit (0.6 s): a flinch, chest and head knocked back, then it recovers.
+kit.animate(rig, "hit", {
+    0: {},
+    int(0.17 * FPS): {"spine": (-10, 0, 0), "chest": (-10, 0, 0), "head": (-14, 0, 0)},
+    int(0.6 * FPS): {},
+}, loop=False)
+
+# Each clip goes out as its own action (see kit.export): the NLA tracks kit.animate made are dropped.
+for track in list(rig.animation_data.nla_tracks):
+    rig.animation_data.nla_tracks.remove(track)
+kit.export(model_name="cultist_combat" if COMBAT else "cultist", kind="characters", preview_colors="TEXTURE",
+           animation_mode="ACTIONS")
