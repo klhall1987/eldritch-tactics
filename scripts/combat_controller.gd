@@ -2,16 +2,16 @@ extends Node
 ## Runs turn-based combat in the overworld, tabletop style: everyone rolls initiative (a d20 plus
 ## their bonus), turns go from the highest total to the lowest, and the first turn starts at once.
 ## On their turn a combatant has their movement (metres), one action and one bonus action. Ending
-## the turn (End Turn, Space, on the detective's turn) passes play on; after the last combatant a
-## new round begins. On his turn the detective moves by clicking the floor: the path under the mouse
+## the turn (End Turn, Space, on the player character's turn) passes play on; after the last combatant a
+## new round begins. On his turn the player character moves by clicking the floor: the path under the mouse
 ## is previewed with its length, and a click walks him along it if it fits his movement left.
 ## Clicking an enemy within reach (1.5 m between their bodies' edges) spends his action on an attack:
 ## a d20 plus attack bonus against Armour Class, damage dice on a hit, a natural 20 a critical hit
 ## (double dice) and a natural 1 always a miss.
 ## A hit takes its damage off the target's hit points; at 0 a combatant is defeated and leaves the turn
-## order. Combat ends in victory when no enemy is left standing, or in defeat if the detective falls.
+## order. Combat ends in victory when no enemy is left standing, or in defeat if the player character falls.
 ## Enemies play their own turns: after a short pause an enemy shambles along a path towards the
-## detective (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
+## player character (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
 ## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_bonus`,
 ## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`, `max_hit_points`).
 
@@ -25,7 +25,7 @@ signal attack_resolved(result: Dictionary)
 signal hit_points_changed(combatant: Node3D, hit_points: int)
 ## Emitted when combat ends with every enemy defeated.
 signal victory
-## Emitted when combat ends with the detective defeated.
+## Emitted when combat ends with the player character defeated.
 signal defeat
 
 ## How far an attack reaches, between the attacker's and the target's bodies' edges (metres).
@@ -33,7 +33,7 @@ const ATTACK_REACH := 1.5
 ## How tall a combatant's body is, for clicking on it (metres).
 const BODY_HEIGHT := 1.8
 
-## The detective's combatant (his Player body). He wins initiative ties that nothing else breaks.
+## The player character's combatant (his Player body). He wins initiative ties that nothing else breaks.
 @export var detective_path: NodePath
 ## Draws the previewed path (a MeshInstance3D, with a Label3D under it for the length).
 @export var path_preview_node: NodePath
@@ -70,7 +70,7 @@ var bonus_actions_left := 0
 var hit_points := {}
 var defeated: Array[Node3D] = []
 
-## The path previewed under the mouse on the detective's turn: its points (from him), length in
+## The path previewed under the mouse on the player character's turn: its points (from him), length in
 ## metres, and whether it fits his movement left.
 var preview_path := PackedVector3Array()
 var preview_length := 0.0
@@ -235,7 +235,7 @@ func armour_class(combatant: Node) -> int:
 	return combatant.get_meta("armour_class", 10)
 
 
-## Previews the path from the detective to the floor point under `screen_position`.
+## Previews the path from the player character to the floor point under `screen_position`.
 func _update_preview(screen_position: Vector2) -> void:
 	var camera := get_viewport().get_camera_3d()
 	var origin := camera.project_ray_origin(screen_position)
@@ -297,13 +297,13 @@ func _physics_process(delta: float) -> void:
 		_play_enemy_turn(delta)
 
 
-## The player asking to end the turn (the End Turn key or button): ends it only on the detective's turn.
+## The player asking to end the turn (the End Turn key or button): ends it only on the player character's turn.
 func request_end_turn() -> void:
 	if running and active == detective:
 		end_turn()
 
 
-## Plays the active enemy's turn a tick at a time: think, walk towards the detective, attack, end.
+## Plays the active enemy's turn a tick at a time: think, walk towards the player character, attack, end.
 func _play_enemy_turn(delta: float) -> void:
 	match _enemy_step:
 		EnemyStep.THINK:
@@ -339,7 +339,7 @@ func _play_enemy_turn(delta: float) -> void:
 				end_turn()
 
 
-## After moving: attack the detective if he's within reach, then pause before the turn ends.
+## After moving: attack the player character if he's within reach, then pause before the turn ends.
 func _finish_enemy_move() -> void:
 	if can_attack(active, detective):
 		attack(active, detective)
@@ -347,7 +347,7 @@ func _finish_enemy_move() -> void:
 	_enemy_timer = enemy_end_seconds
 
 
-## The points `enemy` walks through towards the detective (not counting where it stands): along a
+## The points `enemy` walks through towards the player character (not counting where it stands): along a
 ## path round walls and props, stopping once it's comfortably within reach or out of movement.
 ## Empty if it's already within reach or can't move.
 func _approach_path(enemy: Node3D) -> PackedVector3Array:
@@ -448,7 +448,7 @@ func movement(combatant: Node) -> float:
 
 
 ## The combatants in `initiative_rolls` (combatant -> d20 roll), by roll plus bonus from highest
-## to lowest. Ties go to the higher bonus, then to the detective.
+## to lowest. Ties go to the higher bonus, then to the player character.
 func order_by_initiative(initiative_rolls: Dictionary) -> Array:
 	var order := initiative_rolls.keys()
 	order.sort_custom(func(a: Node, b: Node) -> bool:

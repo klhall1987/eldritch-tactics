@@ -1,10 +1,10 @@
 extends Node3D
-## The game's root scene: the garage, with the detective (moved by Player) and a cultist in it.
-## Walking the detective into an enemy (moving towards it inside its touch area) starts an
+## The game's root scene: the garage, with the player character (moved by Player) and a cultist in it.
+## Walking the player character into an enemy (moving towards it inside its touch area) starts an
 ## encounter, and turn-based combat begins right there (CombatController).
 ## Winning the fight frees him to walk again; defeated enemies are no longer bumped into.
 
-## Emitted once, when the detective first bumps into an enemy.
+## Emitted once, when the player character first bumps into an enemy.
 signal encounter_started(enemy: Node3D)
 
 var _encounter_running := false
@@ -12,7 +12,7 @@ var _touch_areas := {}  # enemy -> its touch Area3D
 
 
 func _ready() -> void:
-	for character: Node in [$Player/Detective, $Cultist]:
+	for character: Node in [$Player/Character, $Cultist]:
 		var player := character.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 		player.play("idle")
 	# BulbLight sits inside the bulb mesh: if the bulb (or its cord) cast shadows, they would

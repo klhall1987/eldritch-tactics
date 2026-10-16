@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
-[ext_resource type="PackedScene" uid="uid://hbjm6etvce02" path="res://assets/models/characters/detective.glb" id="3_detective"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/character.glb" id="3_character"]
 [ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="4_cultist"]
 [ext_resource type="Script" uid="uid://bw4qkcj37vgg" path="res://scripts/follow_camera.gd" id="5_follow"]
 [ext_resource type="Script" uid="uid://c087yug6bd7ys" path="res://scripts/flicker_light.gd" id="6_flicker"]
@@ -49,7 +49,7 @@ room_path = NodePath("../RoomCollision")
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
 script = ExtResource("7_player")
 metadata/initiative_bonus = 2
-metadata/display_name = "Detective"
+metadata/display_name = "Player"
 metadata/movement = 9.0
 metadata/attack_bonus = 4
 metadata/armour_class = 13
@@ -63,7 +63,7 @@ metadata/max_hit_points = 20
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="Detective" parent="Player" unique_id=1625854437 instance=ExtResource("3_detective")]
+[node name="Character" parent="Player" instance=ExtResource("3_character")]
 
 [node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
@@ -99,7 +99,7 @@ current = true
 size = 4.0
 far = 100.0
 script = ExtResource("5_follow")
-target_path = NodePath("../Player/Detective")
+target_path = NodePath("../Player/Character")
 
 [node name="CombatController" type="Node" parent="."]
 script = ExtResource("9_combat")

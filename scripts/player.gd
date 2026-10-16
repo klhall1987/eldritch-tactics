@@ -1,5 +1,5 @@
 extends CharacterBody3D
-## The player: walks the detective (its child) around the floor with WASD or the arrow keys, in
+## The player: walks the player character (its child) around the floor with WASD or the arrow keys, in
 ## eight directions relative to the screen, turning to face where he walks. Plays `walk` while
 ## moving and `idle` when stopped. In combat he walks along a path instead (`walk_path`).
 
