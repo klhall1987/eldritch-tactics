@@ -235,7 +235,8 @@ func test_clicking_a_reachable_point_walks_him_there():
 	var walked := _flat(body.global_position).distance_to(_flat(clicked_at))
 	walked += await _walk_distance(body, animation)
 	assert_lt(_flat(body.global_position).distance_to(_flat(NEAR)), 0.3, "he ends at the clicked point")
-	assert_eq(animation.current_animation, "idle", "he ends in idle")
+	# In combat he stands in his guard (#71; changed with the owner's go-ahead on #71).
+	assert_eq(animation.current_animation, "combat_idle", "he ends in his combat stance")
 	assert_gt(walked, 1.5, "he walked the 2 m there (%.2f m)" % walked)
 	assert_almost_eq(before - controller.movement_left, walked, 0.1, "his movement went down by the distance walked")
 

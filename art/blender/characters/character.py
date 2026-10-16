@@ -93,8 +93,13 @@ def arms(swing_l=0.0, swing_r=0.0, bend=0.0):
     }
 
 
+AIM = "aim"
+
+
 def pose(turns):
-    """Poses the rig: `turns` maps bone -> [(world axis, degrees), ...], applied in order."""
+    """Poses the rig: `turns` maps bone -> [(world axis, degrees), ...], applied in order. An entry
+    (AIM, direction) instead turns the bone to point along that world direction, wherever its parents
+    have put it."""
     for pb in rig.pose.bones:
         pb.rotation_quaternion = Quaternion()
     bpy.context.view_layer.update()
@@ -104,13 +109,19 @@ def pose(turns):
         head = pb.matrix.translation.copy()
         turn = Matrix.Identity(4)
         for axis, degrees in turns[pb.name]:
+            if axis == AIM:
+                current = (pb.tail - pb.head).normalized()
+                turn = current.rotation_difference(Vector(degrees).normalized()).to_matrix().to_4x4() @ turn
+                continue
             turn = Matrix.Rotation(math.radians(degrees), 4, axis) @ turn
         pb.matrix = Matrix.Translation(head) @ turn @ Matrix.Translation(-head) @ pb.matrix
         bpy.context.view_layer.update()
 
 
 def animate(name, keys):
-    """A looping clip: `keys` maps frame -> turns (see pose). It gets Godot's -loop import suffix."""
+    """A looping clip: `keys` maps frame -> turns (see pose). It gets Godot's -loop import suffix.
+    Each clip stays its own action (no NLA tracks): the exporter writes actions one at a time, so no
+    clip leaks into another."""
     action = bpy.data.actions.new(name + "-loop")
     action.use_fake_user = True
     rig.animation_data_create()
@@ -119,9 +130,6 @@ def animate(name, keys):
         pose(turns)
         for pb in rig.pose.bones:
             pb.keyframe_insert("rotation_quaternion", frame=frame)
-    track = rig.animation_data.nla_tracks.new()
-    track.name = action.name
-    track.strips.new(action.name, int(min(keys)), action)
     rig.animation_data.action = None
     pose({})
 
@@ -157,4 +165,37 @@ def stride(lead):
 # Walk (1 s): a relaxed stride, in place.
 animate("walk", {0: stride(1), int(0.5 * FPS): stride(-1), FPS: stride(1)})
 
-kit.export(model_name="character", kind="characters", preview_colors="TEXTURE")
+
+def guard(bounce):
+    """His bare-handed fighting stance: fists up by his chin, elbows in, left foot ahead and feet set
+    wide. `bounce` (0..1) dips the chest and fists a little; his legs don't move, so his feet stay put."""
+    stance = {
+        "thigh_l": [(Y, -4), (X, -7)],  # out to his left and a little ahead
+        "thigh_r": [(Y, 4), (X, 4)],  # out to his right and a little behind
+        "spine_01": [(Z, 22), (X, -9 - 2 * bounce)],  # side-on, left shoulder leading, hunched forward
+    }
+    # The arms are aimed (world directions, Blender's: +X his left, -Y ahead, +Z up), so the twist of
+    # his torso doesn't swing them out: upper arms down and forward with the elbows in, forearms up to
+    # fists by his chin, the lead (left) fist a little further out.
+    dip = 0.06 * bounce
+    fists = {
+        "clavicle_l": [(Y, -6)],  # shoulders hunched up a little
+        "clavicle_r": [(Y, 6)],
+        "upperarm_l": [(AIM, (-0.12, -0.62, -0.78 - dip))],
+        "upperarm_r": [(AIM, (0.18, -0.5, -0.85 - dip))],
+        "lowerarm_l": [(AIM, (-0.3, -0.55, 0.78 - dip))],
+        "lowerarm_r": [(AIM, (0.42, -0.42, 0.8 - dip))],
+        "neck_01": [(X, 6)],  # chin tucked
+    }
+    return merged(stance, fists)
+
+
+# Combat idle (1.5 s): standing in his guard, bouncing gently on the spot.
+animate("combat_idle", {0: guard(0), int(0.75 * FPS): guard(1), int(1.5 * FPS): guard(0)})
+
+out = kit.ASSETS_DIR / "characters" / "character.glb"
+bpy.ops.export_scene.gltf(filepath=str(out), export_format="GLB", export_yup=True, export_apply=True,
+                          export_animations=True, export_animation_mode="ACTIONS")
+print(f"KIT: exported {out}")
+for path in kit.render_previews("character", colors="TEXTURE"):
+    print(f"KIT: preview {path}")

@@ -1,7 +1,8 @@
 extends CharacterBody3D
 ## The player: walks the player character (its child) around the floor with WASD or the arrow keys, in
 ## eight directions relative to the screen, turning to face where he walks. Plays `walk` while
-## moving and `idle` when stopped. In combat he walks along a path instead (`walk_path`).
+## moving and `idle` when stopped. In combat he walks along a path instead (`walk_path`), and stands
+## in his guard (`combat_idle`) rather than `idle`.
 
 ## Emitted when he reaches the end of a path given to `walk_path`.
 signal path_finished
@@ -10,12 +11,16 @@ signal path_finished
 @export var speed := 2.5
 ## How quickly he turns to face his direction of travel (higher is snappier).
 @export var turn_rate := 25.0
+## The combat controller: while combat runs, he stands in `combat_idle`.
+@export var combat_controller_path: NodePath
 
 ## When false (e.g. once an encounter starts), the keys don't move him and he stands idle.
 var controllable := true
 
 var _animation: AnimationPlayer
 var _path := PackedVector3Array()  # the points still to walk to, in order
+
+@onready var _combat := get_node_or_null(combat_controller_path)
 
 
 func _ready() -> void:
@@ -50,7 +55,8 @@ func _physics_process(delta: float) -> void:
 		var heading := travel if travel.length() > pace * 0.5 else direction
 		var target := atan2(heading.x, heading.z)  # the model faces its +Z (MODEL_FRONT)
 		rotation.y = lerp_angle(rotation.y, target, 1.0 - exp(-turn_rate * delta))
-	_play("walk" if moving else "idle")
+	var standing: StringName = &"combat_idle" if _combat != null and _combat.running else &"idle"
+	_play(&"walk" if moving else standing)
 
 
 ## Walks him along `path` (from where he stands, through each point in turn), ignoring the keys.
