@@ -99,7 +99,7 @@ func test_everything_but_the_bulb_casts_shadows():
 	if main == null:
 		return
 	var found_no_shadow := []
-	for owner_name in ["Detective", "Cultist", "Garage"]:
+	for owner_name in ["Character", "Cultist", "Garage"]:
 		var node := main.find_child(owner_name, true, false)
 		assert_not_null(node, "the main scene has %s" % owner_name)
 		if node == null:

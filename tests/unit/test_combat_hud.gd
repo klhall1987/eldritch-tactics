@@ -7,13 +7,13 @@ extends GutTest
 # - The main scene has a `CombatHUD` CanvasLayer, shown only while combat runs. Under it:
 #   - `TurnOrder`: one Label per combatant, in initiative order, reading "<name> <hp>/<max>"; the
 #     active combatant's Label starts with "▶". Names are node metadata `display_name`
-#     ("Detective", "Cultist").
+#     ("Player", "Cultist").
 #   - `Movement` (a Label with the movement left as "<metres to one decimal> m"), `Action` and
 #     `BonusAction` (Labels reading "ready" or "used").
 #   - `EndTurn`: a Button.
 #   - `DiceLog`: a container of Labels, one per line, newest last. An initiative line reads like
-#     "Detective initiative: d20 14 + 2 = 16"; an attack line like
-#     "Detective attacks: d20 14 + 4 = 18 vs AC 11, hit; damage 1d8+2 = 7".
+#     "Player initiative: d20 14 + 2 = 16"; an attack line like
+#     "Player attacks: d20 14 + 4 = 18 vs AC 11, hit; damage 1d8+2 = 7".
 # - The HUD reads the main scene's `CombatController` (#45-#50).
 
 var _turns := []  # every combatant named by turn_started, in order
@@ -38,10 +38,10 @@ func _main() -> Node3D:
 
 # The physics body that carries the Detective (#28).
 func _body(main: Node) -> CharacterBody3D:
-	var node := main.find_child("Detective", true, false)
+	var node := main.find_child("Character", true, false)
 	while node != null and not node is CharacterBody3D:
 		node = node.get_parent()
-	assert_not_null(node, "the Detective is carried by a CharacterBody3D")
+	assert_not_null(node, "the Character is carried by a CharacterBody3D")
 	return node as CharacterBody3D
 
 
@@ -133,7 +133,7 @@ func test_turn_order_with_hit_points():
 	assert_eq(entries.size(), 2, "one entry per combatant")
 	if entries.size() != 2:
 		return
-	var names := {body: "Detective", cultist: "Cultist"}
+	var names := {body: "Player", cultist: "Cultist"}
 	var hp := {body: "20/20", cultist: "12/12"}
 	for i in 2:
 		var combatant: Node3D = controller.turn_order[i]
@@ -231,7 +231,7 @@ func test_dice_log_shows_each_roll():
 	if lines.size() < 2:
 		return
 	var newest := lines.slice(lines.size() - 2)
-	var names := {body: "Detective", cultist: "Cultist"}
+	var names := {body: "Player", cultist: "Cultist"}
 	for combatant: Node3D in [body, cultist]:
 		var roll: int = controller.rolls[combatant]
 		var bonus: int = controller.initiative_bonus(combatant)
@@ -250,7 +250,7 @@ func test_dice_log_shows_each_roll():
 		await get_tree().process_frame
 		lines = _labels(log)
 		var line: String = lines[-1] if not lines.is_empty() else ""
-		assert_string_contains(line, "Detective", "the attack line names the attacker")
+		assert_string_contains(line, "Player", "the attack line names the attacker")
 		assert_string_contains(line, "d20 %d + 4 = %d" % [result.roll, result.total], "the newest line shows the attack roll, bonus and total")
 		assert_string_contains(line, "AC 11", "it shows the target's AC")
 		if result.hit:
