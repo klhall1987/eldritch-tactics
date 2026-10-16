@@ -25,3 +25,24 @@ OpenGL normal map:
 | `knitted_fleece_diff_1k.jpg`, `knitted_fleece_nor_gl_1k.jpg` | [knitted_fleece](https://polyhaven.com/a/knitted_fleece) (1k) | the detective's turtleneck; the cultist's under-robe and bandage wraps (recoloured, with grime and blood painted on) |
 | `denim_fabric_diff_1k.jpg`, `denim_fabric_nor_gl_1k.jpg` | [denim_fabric](https://polyhaven.com/a/denim_fabric) (1k) | the detective's trousers (tinted dark); the cultist's robe, hood and rags (recoloured, with grime and blood painted on) |
 | `fabric_leather_02_diff_1k.jpg`, `fabric_leather_02_nor_gl_1k.jpg` | [fabric_leather_02](https://polyhaven.com/a/fabric_leather_02) (1k) | the detective's boots (tinted dark) |
+
+## MakeHuman assets (`makehuman/`)
+
+The player character (`art/blender/characters/character.py`) is built with **MPFB 2**, the MakeHuman
+plugin for Blender (https://extensions.blender.org/add-ons/mpfb/, GPLv3 code; it must be installed in
+Blender, and brings the MakeHuman base mesh, shape targets and skeletons). The assets fitted to him
+are copied unchanged (minus thumbnails) from the **MakeHuman system assets** pack,
+`makehuman_system_assets_cc0.zip`, downloaded from
+https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
+(see https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html). Every
+file is CC0 1.0, as each asset file's header states and https://static.makehumancommunity.org/about/license.html
+confirms for MakeHuman's core assets.
+
+| Folder | Asset | Used for |
+|---|---|---|
+| `proxymeshes/male1591/` | male1591 low-poly body (proxy) | his body |
+| `skins/young_caucasian_male/` | young caucasian male skin | his skin texture |
+| `eyes/low-poly/`, `eyes/materials/brown*` | low-poly eyes, brown eye material | his eyes |
+| `eyebrows/eyebrow001/` | eyebrow001 | his eyebrows |
+| `eyelashes/eyelashes01/` | eyelashes01 | his eyelashes |
+| `hair/short02/` | short02 hair | his hair (darkened at build time) |

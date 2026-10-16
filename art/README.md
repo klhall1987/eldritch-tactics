@@ -35,6 +35,12 @@ their `.import` files) the first time it imports it: commit those too.
     must be CC0 (or as free), approved by the owner, committed under `art/base/` and recorded in
     its README; scripts never download anything. Pass `preview_colors="TEXTURE"` to `kit.export()`
     so the previews show the textures. Both the detective and the cultist are built this way.
+  - **The player character is built with MPFB** (the MakeHuman plugin for Blender), from CC0
+    MakeHuman assets committed under `art/base/makehuman/`: `art/blender/characters/character.py`
+    enables MPFB itself (its extension must be installed in Blender), makes the body from MPFB's
+    sliders, fits a low-poly body, eyes, brows, lashes and hair on MPFB's game-engine skeleton, and
+    swaps MPFB's materials for plain textured ones that export cleanly. Clothes for him are separate
+    models fitted to the same body and skeleton.
   - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
