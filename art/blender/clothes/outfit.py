@@ -14,6 +14,7 @@ import pathlib
 import sys
 
 import bmesh
+import numpy as np
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
@@ -82,6 +83,41 @@ def keep_clear(cloth, body, fit=None):
                         v.co += n * (2 * GAP - depth)
 
 
+def fabric_detail(piece, folder, image):
+    """Makes the cloth read at the game's zoom: a height map of its fabric becomes a normal map, and is
+    baked lightly into its colour (keeping the colour's average, so the dye stays as it is). The tee's
+    height is its own MakeHuman bump map (folds and knit); the jeans' is a painted denim twill with
+    some fading, since their source has no bump map. Other pieces are left as they are."""
+    if piece not in ("tee_purple", "jeans_blue"):
+        return image, None
+    w, h = image.size
+    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(h, w, 4)
+    rng = np.random.default_rng(82)
+    if piece == "tee_purple":
+        bump = human.load(f"clothes/{folder}/T-shirt_basic-bump.png")
+        bw, bh = bump.size
+        height = np.array(bump.pixels[:], dtype=np.float32).reshape(bh, bw, 4)[..., :3].mean(axis=-1)
+        height = (height - height.min()) / max(1e-6, np.ptp(height))
+        knit = rng.random((h, w)) * 0.15
+        height = np.clip(height * 0.85 + knit, 0.0, 1.0)
+        shade = 1.0 + 0.55 * (height - height.mean())
+    else:
+        y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+        twill = 0.5 + 0.5 * np.sin((x + y) * (2 * np.pi / 6.0))  # fine diagonal ribs, as denim has
+        weave = rng.random((h, w))
+        fade = np.clip(np.sin(x / w * np.pi * 7) * np.sin(y / h * np.pi * 5), 0.0, 1.0)  # worn, lighter patches
+        height = np.clip(0.6 * twill + 0.4 * weave, 0.0, 1.0)
+        shade = 0.88 + 0.28 * (height - height.mean()) + 0.22 * fade
+        shade = shade / shade.mean()
+    pixels[..., :3] = np.clip(pixels[..., :3] * shade[..., None], 0.0, 1.0)
+    detailed = bpy.data.images.new(f"{piece}_fabric", w, h, alpha=True)
+    detailed.pixels.foreach_set(pixels.ravel())
+    detailed.pack()
+    normal = kit.normal_map_from_height(f"{piece}_normal", height, strength=3.0)
+    normal.pack()
+    return detailed, normal
+
+
 def build(piece, folder, slot, dye, roughness, fit):
     kit.reset()
     human.start()
@@ -103,7 +139,9 @@ def build(piece, folder, slot, dye, roughness, fit):
     keep_clear(cloth, body, fit)
     image = human.load(str(diffuse(folder)))
     image = human.darkened(image, 0.2) if dye is None else human.recoloured(image, dye, piece)
-    human.use(cloth, human.textured(piece, image, roughness=roughness, cutout=True))
+    image, normal = fabric_detail(piece, folder, image)
+    human.use(cloth, human.textured(piece, image, roughness=roughness, cutout=True,
+                                    normal_image=normal, normal_strength=1.0))
     kit.smooth(cloth)
     cloth["slot"] = slot
     bpy.data.objects.remove(body)

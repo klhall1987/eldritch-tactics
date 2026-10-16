@@ -127,9 +127,10 @@ def recoloured(image, colour, name):
     return _packed(name, pixels)
 
 
-def textured(name, image, roughness=0.6, cutout=False):
+def textured(name, image, roughness=0.6, cutout=False, normal_image=None, normal_strength=1.0):
     """A Principled material showing `image`. With `cutout`, the image's alpha cuts holes (alpha clip:
-    glTF's MASK mode, which a Round node on the alpha tells the exporter)."""
+    glTF's MASK mode, which a Round node on the alpha tells the exporter). With `normal_image`, it's
+    normal-mapped (an OpenGL-style tangent-space map)."""
     mat = bpy.data.materials.new(name)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes["Principled BSDF"]
@@ -137,6 +138,14 @@ def textured(name, image, roughness=0.6, cutout=False):
     tex = nodes.new("ShaderNodeTexImage")
     tex.image = image
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if normal_image is not None:
+        normal_image.colorspace_settings.name = "Non-Color"
+        normal_tex = nodes.new("ShaderNodeTexImage")
+        normal_tex.image = normal_image
+        normal_map = nodes.new("ShaderNodeNormalMap")
+        normal_map.inputs["Strength"].default_value = normal_strength
+        links.new(normal_tex.outputs["Color"], normal_map.inputs["Color"])
+        links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
     if cutout:
         clip = nodes.new("ShaderNodeMath")
         clip.operation = "ROUND"
