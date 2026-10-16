@@ -2,24 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqxk6iwa8rvte"
-path.s3tc="res://.godot/imported/jeans_blue_jeans_blue.png-cd057d2f8fc175cc8b329b7825aa4278.s3tc.ctex"
+uid="uid://bs8k5qyf07hpf"
+path="res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "f117250b24fc41de7dfdbce770d25f79"
+"md5": "5b7acef9ac827b79c682f23fbe6b87c8"
 }
 
 [deps]
 
-source_file="res://assets/models/clothes/jeans_blue_jeans_blue.png"
-dest_files=["res://.godot/imported/jeans_blue_jeans_blue.png-cd057d2f8fc175cc8b329b7825aa4278.s3tc.ctex"]
+source_file="res://assets/models/clothes/jeans_blue_jeans_blue_normal.png"
+dest_files=["res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1
