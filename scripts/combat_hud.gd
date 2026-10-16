@@ -1,7 +1,8 @@
 extends CanvasLayer
 ## The tabletop combat HUD, shown only while combat runs: the turn order along the top (each
 ## combatant's hit points, the active one marked "▶"), the active combatant's movement, action and
-## bonus action with an End Turn button along the bottom, and a dice log of every roll at the side.
+## bonus action with an End Turn button along the bottom, and a dice log of every roll at the side,
+## hidden when each combat starts and shown or hidden with the `dice_log` key (L, #102).
 ## Combatants are named by their `display_name` metadata.
 
 ## The combat controller to show.
@@ -21,10 +22,12 @@ var _movement: Label
 var _action: Label
 var _bonus_action: Label
 var _dice_log: VBoxContainer
+var _dice_log_panel: Control  # the dice log's panel, shown and hidden with the `dice_log` key
 
 
 func _ready() -> void:
 	_build()
+	_controller.combat_started.connect(func(): _dice_log_panel.visible = false)  # each combat starts with it hidden
 	_controller.combat_started.connect(_log_initiative)
 	_controller.attack_resolved.connect(_log_attack)
 	visible = false
@@ -34,6 +37,8 @@ func _process(_delta: float) -> void:
 	visible = _controller.running
 	if not visible:
 		return
+	if Input.is_action_just_pressed("dice_log"):
+		_dice_log_panel.visible = not _dice_log_panel.visible
 	_refresh_turn_order()
 	_movement.text = "Movement: %.1f m" % _controller.movement_left
 	_action.text = "Action: %s" % ("ready" if _controller.actions_left > 0 else "used")
@@ -129,6 +134,8 @@ func _build() -> void:
 		row.add_child(part)
 
 	var side := _panel(Vector2(1, 1), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN, Vector2(-12, -76))
+	_dice_log_panel = side
+	side.visible = false
 	side.custom_minimum_size = Vector2(330, 0)
 	_dice_log = VBoxContainer.new()
 	_dice_log.name = "DiceLog"
