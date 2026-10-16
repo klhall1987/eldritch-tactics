@@ -32,6 +32,8 @@ signal defeat
 const ATTACK_REACH := 1.5
 ## How tall a combatant's body is, for clicking on it (metres).
 const BODY_HEIGHT := 1.8
+## How far through the attacker's `attack` clip the target flinches: as the second punch lands.
+const HIT_AT := 0.7
 
 ## The player character's combatant (his Player body). He wins initiative ties that nothing else breaks.
 @export var detective_path: NodePath
@@ -188,6 +190,7 @@ func attack(attacker: Node3D, target: Node3D) -> Dictionary:
 		"critical": critical, "damage_rolls": damage_rolls, "damage": damage,
 	}
 	attack_resolved.emit(result)
+	_animate_attack(attacker, target, hit)
 	if hit:
 		apply_damage(target, damage)
 	return result
@@ -341,10 +344,11 @@ func _play_enemy_turn(delta: float) -> void:
 
 ## After moving: attack the player character if he's within reach, then pause before the turn ends.
 func _finish_enemy_move() -> void:
-	if can_attack(active, detective):
-		attack(active, detective)
 	_enemy_step = EnemyStep.DONE
 	_enemy_timer = enemy_end_seconds
+	if can_attack(active, detective):
+		attack(active, detective)
+		_enemy_timer += _clip_length(active, &"attack")  # let its attack play out before the turn ends
 
 
 ## The points `enemy` walks through towards the player character (not counting where it stands): along a
@@ -386,6 +390,42 @@ func _approach_path(enemy: Node3D) -> PackedVector3Array:
 		walk.append(target)
 		here = target
 	return walk
+
+
+## The attacker throws its `attack`; on a hit, the target flinches (`hit`) as the second punch lands,
+## HIT_AT of the way through the attack. Enemies settle back into `idle` when a clip finishes (the
+## player's own script picks his stance).
+func _animate_attack(attacker: Node3D, target: Node3D, hit: bool) -> void:
+	if not _perform(attacker, &"attack") or not hit:
+		return
+	var delay := _clip_length(attacker, &"attack") * HIT_AT
+	get_tree().create_timer(delay, false, true).timeout.connect(func():
+		if is_instance_valid(target):
+			_perform(target, &"hit"))
+
+
+## Plays `clip` on `combatant` from the start; returns false if it has no such clip.
+func _perform(combatant: Node, clip: StringName) -> bool:
+	var player := _animation_player(combatant)
+	if player == null or not player.has_animation(clip):
+		return false
+	player.stop()
+	player.play(clip)
+	if combatant != detective:
+		player.animation_finished.connect(func(_name: StringName):
+			if is_instance_valid(player) and not player.is_playing():
+				player.play(&"idle"), CONNECT_ONE_SHOT)
+	return true
+
+
+func _clip_length(combatant: Node, clip: StringName) -> float:
+	var player := _animation_player(combatant)
+	return player.get_animation(clip).length if player != null and player.has_animation(clip) else 0.0
+
+
+func _animation_player(combatant: Node) -> AnimationPlayer:
+	var players := combatant.find_children("*", "AnimationPlayer", true, false) if combatant != null else []
+	return players[0] if not players.is_empty() else null
 
 
 func _play_animation(combatant: Node, clip: StringName) -> void:
