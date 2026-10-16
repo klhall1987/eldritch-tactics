@@ -36,8 +36,8 @@ func _main() -> Node3D:
 
 
 func _detective(main: Node) -> Node3D:
-	var detective := main.find_child("Detective", true, false) as Node3D
-	assert_not_null(detective, "the main scene has the Detective")
+	var detective := main.find_child("Character", true, false) as Node3D
+	assert_not_null(detective, "the main scene has the Character")
 	return detective
 
 

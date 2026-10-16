@@ -2,7 +2,7 @@ extends GutTest
 # The detective and cultist in the garage (ticket #10): when the game starts, both stand facing
 # each other on the garage floor, clear of the props, in view of the camera, playing idle.
 
-const DETECTIVE_PATH := "res://assets/models/characters/detective.glb"
+const DETECTIVE_PATH := "res://assets/models/characters/character.glb"  # the player character (#66)
 const CULTIST_PATH := "res://assets/models/characters/cultist.glb"
 const PROPS := ["garage_door", "workbench", "couch", "shelves", "fridge", "mattress"]
 
@@ -38,9 +38,9 @@ func _main_in_game_window() -> Node3D:
 
 # The detective and the cultist, or an empty array (after failing the test) if either is missing.
 func _characters(main: Node) -> Array[Node3D]:
-	var detective := main.find_child("Detective", true, false) as Node3D
+	var detective := main.find_child("Character", true, false) as Node3D
 	var cultist := main.find_child("Cultist", true, false) as Node3D
-	assert_not_null(detective, "the main scene has a Node3D named Detective")
+	assert_not_null(detective, "the main scene has a Node3D named Character")
 	assert_not_null(cultist, "the main scene has a Node3D named Cultist")
 	if detective == null or cultist == null:
 		return []
@@ -85,7 +85,7 @@ func test_main_scene_has_detective_and_cultist():
 	var characters := _characters(main)
 	if characters.is_empty():
 		return
-	assert_eq(characters[0].scene_file_path, DETECTIVE_PATH, "Detective is an instance of the detective model")
+	assert_eq(characters[0].scene_file_path, DETECTIVE_PATH, "Character is an instance of the character model")
 	assert_eq(characters[1].scene_file_path, CULTIST_PATH, "Cultist is an instance of the cultist model")
 
 

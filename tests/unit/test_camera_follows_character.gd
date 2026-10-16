@@ -87,7 +87,7 @@ func test_detective_is_centred_on_screen():
 		return
 	await wait_frames(1)
 	var camera := _camera(main)
-	var detective := _node(main, "Detective")
+	var detective := _node(main, "Character")
 	if camera == null or detective == null:
 		return
 	_assert_centred(camera, detective, "at the start")
@@ -102,7 +102,7 @@ func test_camera_follows_the_detective():
 		return
 	await wait_frames(1)
 	var camera := _camera(main)
-	var detective := _node(main, "Detective")
+	var detective := _node(main, "Character")
 	if camera == null or detective == null:
 		return
 	var basis_before := camera.global_transform.basis
@@ -131,7 +131,7 @@ func test_camera_sees_both_characters_after_first_frame():
 	var camera := _camera(main)
 	if camera == null:
 		return
-	for character_name in ["Detective", "Cultist"]:
+	for character_name in ["Character", "Cultist"]:
 		var character := _node(main, character_name)
 		if character == null:
 			continue

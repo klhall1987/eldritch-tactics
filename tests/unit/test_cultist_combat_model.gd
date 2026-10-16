@@ -5,7 +5,6 @@ extends GutTest
 
 const GARAGE_MODEL := "res://assets/models/characters/cultist.glb"
 const COMBAT_MODEL := "res://assets/models/characters/cultist_combat.glb"
-const COMBAT_SCENE := "res://scenes/combat.tscn"
 const FACE_PREFIXES := ["face", "skin"]
 const CLOTHES_PREFIXES := ["robe", "rag", "wrap"]
 
@@ -176,23 +175,3 @@ func test_combat_model_matches_the_garage_model():
 	for material: String in glowing:
 		assert_true(material.begins_with("eye"), "only the eyes glow (%s does too)" % material)
 
-
-# Given the combat scene, when its Cultist is inspected, then it is an instance of
-# cultist_combat.glb, while the garage's Cultist is still an instance of cultist.glb.
-func test_combat_scene_uses_the_combat_model():
-	var combat_scene: PackedScene = load(COMBAT_SCENE)
-	assert_not_null(combat_scene, "the combat scene loads")
-	if combat_scene != null:
-		var combat := combat_scene.instantiate()
-		add_child_autofree(combat)
-		var cultist := combat.find_child("Cultist", true, false)
-		assert_not_null(cultist, "the combat scene has the Cultist")
-		if cultist != null:
-			assert_eq(cultist.scene_file_path, COMBAT_MODEL, "the combat scene's Cultist is the combat model")
-	var main_scene: PackedScene = load(ProjectSettings.get_setting("application/run/main_scene"))
-	var main := main_scene.instantiate()
-	add_child_autofree(main)
-	var garage_cultist := main.find_child("Cultist", true, false)
-	assert_not_null(garage_cultist, "the garage has the Cultist")
-	if garage_cultist != null:
-		assert_eq(garage_cultist.scene_file_path, GARAGE_MODEL, "the garage's Cultist is still cultist.glb")

@@ -52,10 +52,10 @@ func _node(main: Node, node_name: String) -> Node:
 
 # The physics body that carries the Detective (#28).
 func _body(main: Node) -> CharacterBody3D:
-	var node := main.find_child("Detective", true, false)
+	var node := main.find_child("Character", true, false)
 	while node != null and not node is CharacterBody3D:
 		node = node.get_parent()
-	assert_not_null(node, "the Detective is carried by a CharacterBody3D")
+	assert_not_null(node, "the Character is carried by a CharacterBody3D")
 	return node as CharacterBody3D
 
 
