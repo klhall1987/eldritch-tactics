@@ -94,12 +94,14 @@ def arms(swing_l=0.0, swing_r=0.0, bend=0.0):
 
 
 AIM = "aim"
+CURL = "curl"
 
 
 def pose(turns):
     """Poses the rig: `turns` maps bone -> [(world axis, degrees), ...], applied in order. An entry
     (AIM, direction) instead turns the bone to point along that world direction, wherever its parents
-    have put it."""
+    have put it; (CURL, (local axis, degrees)) bends it about one of its own axes, after the rest
+    (how finger joints bend, whatever way the hand faces)."""
     for pb in rig.pose.bones:
         pb.rotation_quaternion = Quaternion()
     bpy.context.view_layer.update()
@@ -108,14 +110,37 @@ def pose(turns):
             continue
         head = pb.matrix.translation.copy()
         turn = Matrix.Identity(4)
+        curls = []
         for axis, degrees in turns[pb.name]:
             if axis == AIM:
                 current = (pb.tail - pb.head).normalized()
                 turn = current.rotation_difference(Vector(degrees).normalized()).to_matrix().to_4x4() @ turn
                 continue
+            if axis == CURL:
+                curls.append(degrees)
+                continue
             turn = Matrix.Rotation(math.radians(degrees), 4, axis) @ turn
         pb.matrix = Matrix.Translation(head) @ turn @ Matrix.Translation(-head) @ pb.matrix
+        for local_axis, degrees in curls:
+            pb.matrix = pb.matrix @ Matrix.Rotation(math.radians(degrees), 4, local_axis)
         bpy.context.view_layer.update()
+
+
+FINGERS = ("index", "middle", "ring", "pinky")
+FINGER_BEND = "X"  # the local axis a game-engine finger joint bends about
+THUMB_BEND = "X"  # and the thumb's
+
+
+def fist(side):
+    """Turns that close one hand (`side` "l" or "r") into a fist: each finger curled into the palm,
+    joint by joint, and the thumb wrapped across them."""
+    turns = {}
+    for finger in FINGERS:
+        for joint, degrees in (("01", 100), ("02", 115), ("03", 85)):
+            turns[f"{finger}_{joint}_{side}"] = [(CURL, (FINGER_BEND, degrees))]
+    for joint, degrees in (("01", 25), ("02", 45), ("03", 50)):
+        turns[f"thumb_{joint}_{side}"] = [(CURL, (THUMB_BEND, degrees))]
+    return turns
 
 
 def animate(name, keys, loop=True):
@@ -188,7 +213,7 @@ def guard(bounce):
         "lowerarm_r": [(AIM, (0.42, -0.42, 0.8 - dip))],
         "neck_01": [(X, 6)],  # chin tucked
     }
-    return merged(stance, fists)
+    return merged(stance, fists, fist("l"), fist("r"))
 
 
 # Combat idle (1.5 s): standing in his guard, bouncing gently on the spot.
