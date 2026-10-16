@@ -118,11 +118,12 @@ def pose(turns):
         bpy.context.view_layer.update()
 
 
-def animate(name, keys):
-    """A looping clip: `keys` maps frame -> turns (see pose). It gets Godot's -loop import suffix.
+def animate(name, keys, loop=True):
+    """A clip: `keys` maps frame -> turns (see pose). Looping clips get Godot's -loop import suffix;
+    with `loop=False` it plays once.
     Each clip stays its own action (no NLA tracks): the exporter writes actions one at a time, so no
     clip leaks into another."""
-    action = bpy.data.actions.new(name + "-loop")
+    action = bpy.data.actions.new(name + "-loop" if loop else name)
     action.use_fake_user = True
     rig.animation_data_create()
     rig.animation_data.action = action
@@ -192,6 +193,40 @@ def guard(bounce):
 
 # Combat idle (1.5 s): standing in his guard, bouncing gently on the spot.
 animate("combat_idle", {0: guard(0), int(0.75 * FPS): guard(1), int(1.5 * FPS): guard(0)})
+
+
+def punch(side):
+    """His guard with one arm thrown straight out at shoulder height: the left (+1) is the jab, the
+    right (-1) the cross, with his torso turning and leaning into it. His legs keep the guard's."""
+    pose_ = guard(0)
+    s = "l" if side > 0 else "r"
+    reach = (-0.1 * side, -1.0, 0.04)  # straight ahead, angled in a little towards the centre line
+    pose_[f"upperarm_{s}"] = [(AIM, reach)]
+    pose_[f"lowerarm_{s}"] = [(AIM, reach)]
+    pose_["spine_01"] = [(Z, 26 if side > 0 else -8), (X, 8)]  # turn the punching shoulder forward, lean in
+    return pose_
+
+
+# Attack (1.2 s): a jab with the lead (left) fist, back to the guard, then a cross with the right.
+animate("attack", {
+    0: guard(0),
+    int(0.27 * FPS): punch(1),
+    int(0.5 * FPS): guard(0),
+    int(0.8 * FPS): punch(-1),
+    int(1.2 * FPS): guard(0),
+}, loop=False)
+
+
+def flinch():
+    """His guard knocked back: chest and head snapping back, fists lifting a little to cover."""
+    pose_ = guard(0)
+    pose_["spine_01"] = [(Z, 22), (X, -20)]
+    pose_["neck_01"] = [(X, -8)]
+    return pose_
+
+
+# Hit (0.6 s): a quick flinch backwards, then he recovers his guard.
+animate("hit", {0: guard(0), int(0.17 * FPS): flinch(), int(0.6 * FPS): guard(0)}, loop=False)
 
 out = kit.ASSETS_DIR / "characters" / "character.glb"
 bpy.ops.export_scene.gltf(filepath=str(out), export_format="GLB", export_yup=True, export_apply=True,
