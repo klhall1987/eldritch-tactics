@@ -267,24 +267,25 @@ def guard(bounce):
 animate("combat_idle", {int(i * 0.375 * FPS): guard((1 - math.cos(i * math.pi / 2)) / 2) for i in range(5)})
 
 
-def punch(side):
-    """His guard with one arm thrown straight out at shoulder height: the left (+1) is the jab, the
-    right (-1) the cross, with his torso turning and leaning into it. His legs keep the guard's."""
+def slash(wrist, turn):
+    """His guard with his knife hand (the right) swung to `wrist` (a world point, Blender's: +X his
+    left, -Y ahead, +Z up) and his chest turned `turn` degrees from the guard's twist into the swing.
+    His left fist and legs keep the guard's."""
     pose_ = guard(0)
-    s = "l" if side > 0 else "r"
-    reach = (-0.1 * side, -1.0, 0.04)  # straight ahead, angled in a little towards the centre line
-    pose_[f"upperarm_{s}"] = [(AIM, reach)]
-    pose_[f"lowerarm_{s}"] = [(AIM, reach)]
-    pose_["spine_01"] = [(Z, TWIST - 12 if side > 0 else TWIST + 45), (X, 8)]  # punching shoulder forward, lean in
+    pose_["upperarm_r"] = [(REACH, (wrist, (-0.3, 0.3, -1.0)))]
+    pose_["spine_01"] = [(Z, TWIST + turn), (X, 6)]
     return pose_
 
 
-# Attack (1.2 s): a jab with the lead (left) fist, back to the guard, then a cross with the right.
+# Attack (1.2 s): two knife slashes across his front. A forehand from out on his right, cutting
+# across to his left, then a backhand from there back out to his right; the backhand lands at the
+# combat controller's HIT_AT (0.7 of the way through).
 animate("attack", {
     0: guard(0),
-    int(0.27 * FPS): punch(1),
-    int(0.5 * FPS): guard(0),
-    int(0.8 * FPS): punch(-1),
+    int(0.14 * FPS): slash((-0.4, -0.1, 1.5), -12),  # wind up: knife drawn back out to his right
+    int(0.34 * FPS): slash((0.22, -0.36, 1.27), 34),  # forehand: across to his left
+    int(0.6 * FPS): slash((0.2, -0.22, 1.45), 30),  # turned over, ready to come back
+    int(0.84 * FPS): slash((-0.42, -0.34, 1.3), -20),  # backhand: back out to his right
     int(1.2 * FPS): guard(0),
 }, loop=False)
 

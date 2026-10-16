@@ -186,7 +186,7 @@ func test_attack_rolls_follow_the_rules():
 	var hits := {true: 0, false: 0}
 	for i in 400:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 4, 11, 8, 1, 2, "detective")
+		_assert_follows_rules(result, 4, 11, 4, 1, 2, "detective")
 		naturals[result.get("roll")] = true
 		hits[result.get("hit")] += 1
 		result = controller.attack(cultist, body)
@@ -197,8 +197,9 @@ func test_attack_rolls_follow_the_rules():
 
 
 # Given a hit, when damage is rolled, then it's the attacker's damage dice plus their bonus
-# (detective 1d8+2, cultist 1d6+1). A natural 20 doubles the number of dice (detective 2d8+2), and
-# a miss deals no damage.
+# (detective 1d4+2 with his knife, #92; cultist 1d6+1). A natural 20 doubles the number of dice
+# (detective 2d4+2), and a miss deals no damage.
+# (Changed from 1d8+2 with the owner's go-ahead on #92.)
 func test_damage_dice_on_a_hit():
 	var fight := await _combat()
 	if fight.is_empty():
@@ -211,7 +212,7 @@ func test_damage_dice_on_a_hit():
 	var cultist_damage := {}
 	for i in 600:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 4, 11, 8, 1, 2, "detective")
+		_assert_follows_rules(result, 4, 11, 4, 1, 2, "detective")
 		if result.get("hit") and not result.get("critical"):
 			normal[result.get("damage")] = true
 		elif result.get("critical"):
@@ -221,8 +222,8 @@ func test_damage_dice_on_a_hit():
 		if result.get("hit") and not result.get("critical"):
 			cultist_damage[result.get("damage")] = true
 	assert_eq(normal.keys().min(), 3, "the detective's lowest normal hit is 1 + 2")
-	assert_eq(normal.keys().max(), 10, "the detective's highest normal hit is 8 + 2")
-	assert_gt(critical_max, 10, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
+	assert_eq(normal.keys().max(), 6, "the detective's highest normal hit is 4 + 2 (his knife, #92)")
+	assert_gt(critical_max, 6, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
 	assert_eq(cultist_damage.keys().min(), 2, "the cultist's lowest hit is 1 + 1")
 	assert_eq(cultist_damage.keys().max(), 7, "the cultist's highest hit is 6 + 1")
 

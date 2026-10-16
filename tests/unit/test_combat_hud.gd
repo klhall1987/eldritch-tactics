@@ -13,7 +13,7 @@ extends GutTest
 #   - `EndTurn`: a Button.
 #   - `DiceLog`: a container of Labels, one per line, newest last. An initiative line reads like
 #     "Player initiative: d20 14 + 2 = 16"; an attack line like
-#     "Player attacks: d20 14 + 4 = 18 vs AC 11, hit; damage 1d8+2 = 7".
+#     "Player attacks: d20 14 + 4 = 18 vs AC 11, hit; damage 1d4+2 = 5" (his knife's 1d4, #92).
 # - The HUD reads the main scene's `CombatController` (#45-#50).
 
 var _turns := []  # every combatant named by turn_started, in order
@@ -256,7 +256,7 @@ func test_dice_log_shows_each_roll():
 		if result.hit:
 			assert_string_contains(line, "hit", "it says hit")
 			var dice: int = result.damage_rolls.size()
-			assert_string_contains(line, "%dd8+2 = %d" % [dice, result.damage], "it shows the damage dice, bonus and total")
+			assert_string_contains(line, "%dd4+2 = %d" % [dice, result.damage], "it shows the damage dice, bonus and total")
 		else:
 			assert_string_contains(line, "miss", "it says miss")
 		seen[result.hit] = true
