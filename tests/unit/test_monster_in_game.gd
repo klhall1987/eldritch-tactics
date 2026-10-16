@@ -7,7 +7,7 @@ extends GutTest
 # - The enemy is still the `Cultist` node (#10); its model is the scene it instances.
 # - "Its widest point, seen from above, excluding its legs" is the furthest any of its skinned vertices
 #   not following a `leg*` bone (most) reaches, horizontally, from its origin, in its rest pose. Its
-#   TouchArea's size is its CollisionShape3D's cylinder radius.
+#   TouchArea keeps #19's rule (checked in test_enemy_encounter.gd).
 # - Cuts and blood are #93's `wounds` and #94's `blood_sprays` groups.
 
 const MONSTER_PATH := "res://assets/models/characters/monster.glb"
@@ -192,8 +192,10 @@ func _skinned(mi: MeshInstance3D, s: int, index: int) -> Vector3:
 	return skeleton.global_transform * result
 
 
-# Given the monster's size, when its body radius is checked, then its body_radius metadata and its
-# TouchArea's radius are within 0.05 m of its widest point, seen from above, excluding its legs.
+# Given the monster's size, when its body radius is checked, then its body_radius metadata is within
+# 0.05 m of its widest point, seen from above, excluding its legs.
+# (Changed with the owner's go-ahead on #108, answer 1a: the TouchArea isn't checked here; it keeps
+# reaching 0.2-0.5 m beyond body_radius, as test_enemy_encounter.gd (#19) requires.)
 func test_its_reach_fits_its_body():
 	var main := await _main()
 	if main == null:
@@ -226,8 +228,3 @@ func test_its_reach_fits_its_body():
 	assert_gt(widest, 0.2, "the monster has a body to measure (%.3f m)" % widest)
 	var radius: float = monster.get_meta("body_radius", 0.0)
 	assert_almost_eq(radius, widest, 0.05, "its body_radius matches its body (%.3f m vs %.3f m)" % [radius, widest])
-	var shape := monster.find_child("TouchArea", false, false).find_child("CollisionShape3D", false, false) as CollisionShape3D
-	var cylinder := shape.shape as CylinderShape3D if shape != null else null
-	assert_not_null(cylinder, "its TouchArea is a cylinder")
-	if cylinder != null:
-		assert_almost_eq(cylinder.radius, widest, 0.05, "its TouchArea matches its body (%.3f m vs %.3f m)" % [cylinder.radius, widest])
