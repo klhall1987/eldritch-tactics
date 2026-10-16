@@ -2,10 +2,15 @@ extends CharacterBody3D
 ## The player: walks the player character (its child) around the floor with WASD or the arrow keys, in
 ## eight directions relative to the screen, turning to face where he walks. Plays `walk` while
 ## moving and `idle` when stopped. In combat he walks along a path instead (`walk_path`), and stands
-## in his guard (`combat_idle`) rather than `idle`.
+## in his guard (`combat_idle`) rather than `idle`, with his knife drawn in his right hand (#91).
 
 ## Emitted when he reaches the end of a path given to `walk_path`.
 signal path_finished
+
+const KNIFE := preload("res://assets/models/props/knife.glb")
+## How far the knife's blade tips forward from the line of his knuckles (1 = 45 degrees), so it points
+## past his fist rather than up at his face in the guard.
+const KNIFE_TILT := 0.0
 
 ## Walking speed in metres per second.
 @export var speed := 2.5
@@ -19,6 +24,7 @@ var controllable := true
 
 var _animation: AnimationPlayer
 var _path := PackedVector3Array()  # the points still to walk to, in order
+var _knife: Node3D
 
 @onready var _combat := get_node_or_null(combat_controller_path)
 
@@ -26,6 +32,40 @@ var _path := PackedVector3Array()  # the points still to walk to, in order
 func _ready() -> void:
 	var players := find_children("*", "AnimationPlayer", true, false)
 	_animation = players[0] if not players.is_empty() else null
+	_knife = _attach_knife()
+
+
+## Puts the knife (hidden) in his right hand: on the `hand_r` bone, its grip in the middle of his fist
+## and running along his knuckles, so the blade comes out on the thumb side.
+func _attach_knife() -> Node3D:
+	var skeletons := find_children("*", "Skeleton3D", true, false)
+	if skeletons.is_empty():
+		return null
+	var skeleton: Skeleton3D = skeletons[0]
+	var hand := skeleton.find_bone("hand_r")
+	if hand < 0:
+		return null
+	# The knuckles, in the hand bone's own space (they don't move as the fingers curl).
+	var to_hand := skeleton.get_bone_global_rest(hand).affine_inverse()
+	var knuckle := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("middle_01_r")).origin
+	var index := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("index_01_r")).origin
+	var pinky := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("pinky_01_r")).origin
+	var ahead := knuckle.normalized()
+	var blade := ((index - pinky).normalized() + ahead * KNIFE_TILT).normalized()
+	var edge := (ahead - blade * ahead.dot(blade)).normalized()
+	# On this body rather than in the character, which holds only his own meshes (#66's collision
+	# tests measure them).
+	var attachment := BoneAttachment3D.new()
+	attachment.use_external_skeleton = true
+	add_child(attachment)
+	attachment.external_skeleton = attachment.get_path_to(skeleton)
+	attachment.bone_name = "hand_r"
+	var knife: Node3D = KNIFE.instantiate()
+	knife.name = "Knife"
+	knife.visible = false
+	knife.transform = Transform3D(Basis(blade.cross(edge), blade, edge), knuckle / 2.0)  # the model's blade is its +Y, edge +Z
+	attachment.add_child(knife)
+	return knife
 
 
 func _physics_process(delta: float) -> void:
@@ -55,8 +95,10 @@ func _physics_process(delta: float) -> void:
 		var heading := travel if travel.length() > pace * 0.5 else direction
 		var target := atan2(heading.x, heading.z)  # the model faces its +Z (MODEL_FRONT)
 		rotation.y = lerp_angle(rotation.y, target, 1.0 - exp(-turn_rate * delta))
-	var standing: StringName = &"combat_idle" if _combat != null and _combat.running else &"idle"
-	_play(&"walk" if moving else standing)
+	var fighting: bool = _combat != null and _combat.running
+	if _knife != null:
+		_knife.visible = fighting  # drawn in combat, put away after
+	_play(&"walk" if moving else (&"combat_idle" if fighting else &"idle"))
 
 
 ## Walks him along `path` (from where he stands, through each point in turn), ignoring the keys.
