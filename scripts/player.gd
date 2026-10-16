@@ -92,5 +92,11 @@ func _screen_to_floor(input: Vector2) -> Vector3:
 
 
 func _play(clip: StringName) -> void:
-	if _animation != null and _animation.current_animation != clip:
+	if _animation == null:
+		return
+	# A punch or a flinch (played by the combat controller, #81) runs to its end before he goes back
+	# to walking or standing.
+	if _animation.is_playing() and _animation.current_animation in [&"attack", &"hit"]:
+		return
+	if _animation.current_animation != clip:
 		_animation.play(clip)
