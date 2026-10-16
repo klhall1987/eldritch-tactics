@@ -49,8 +49,11 @@ func _bone(rig: Array, name: String) -> int:
 
 
 # Given combat_idle is sampled over the whole clip, when each hand is measured, then every fingertip
-# (the last joint of the index, middle, ring and pinky: *_03_l/*_03_r) stays within 0.07 m of that
+# (the last joint of the index, middle, ring and pinky: *_03_l/*_03_r) stays within 0.10 m of that
 # hand's wrist (hand_l/hand_r).
+# (Changed from 0.07 m with the owner's go-ahead on #83: in MPFB's skeleton the knuckles alone are
+# 0.11-0.12 m from the wrist bone, so a closed fist's fingertip joints sit 0.08-0.10 m from it;
+# relaxed they're 0.15-0.19 m.)
 func test_fingers_curl_into_fists_in_combat():
 	var rig := _rig()
 	if rig.is_empty():
@@ -66,8 +69,8 @@ func test_fingers_curl_into_fists_in_combat():
 				if wrist < 0 or tip < 0:
 					return
 				var reach: float = pose[tip].distance_to(pose[wrist])
-				assert_lte(reach, 0.07, "in his guard, his %s %s fingertip is curled in (%.3f m from the wrist)" % [side, finger, reach])
-				if reach > 0.07:
+				assert_lte(reach, 0.10, "in his guard, his %s %s fingertip is curled in (%.3f m from the wrist)" % [side, finger, reach])
+				if reach > 0.10:
 					return
 
 
