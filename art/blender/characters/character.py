@@ -95,23 +95,52 @@ def arms(swing_l=0.0, swing_r=0.0, bend=0.0):
 
 AIM = "aim"
 CURL = "curl"
+MOVE = "move"
+REACH = "reach"
+
+
+def knee(hip, ankle, thigh, calf, hint):  # also an elbow: shoulder, wrist, upper arm, forearm
+    """Where the knee goes for a leg from `hip` to `ankle` with bones `thigh` and `calf` long, bending
+    towards `hint` (a world direction)."""
+    along = ankle - hip
+    d = min(along.length, thigh + calf - 1e-4)
+    along.normalize()
+    a = (thigh * thigh - calf * calf + d * d) / (2 * d)
+    out = Vector(hint) - along * along.dot(Vector(hint))
+    return hip + along * a + out.normalized() * math.sqrt(max(thigh * thigh - a * a, 0.0))
 
 
 def pose(turns):
     """Poses the rig: `turns` maps bone -> [(world axis, degrees), ...], applied in order. An entry
     (AIM, direction) instead turns the bone to point along that world direction, wherever its parents
     have put it; (CURL, (local axis, degrees)) bends it about one of its own axes, after the rest
-    (how finger joints bend, whatever way the hand faces)."""
+    (how finger joints bend, whatever way the hand faces); (MOVE, offset) shifts it first (only the
+    pelvis's position is keyed); and (REACH, (point, bend hint)) on a thigh or upper arm bends the
+    limb so its ankle or wrist lands on that world point, the knee or elbow towards the hint."""
+    turns = {bone: list(rotations) for bone, rotations in turns.items()}
     for pb in rig.pose.bones:
         pb.rotation_quaternion = Quaternion()
+        pb.location = Vector()
     bpy.context.view_layer.update()
     for pb in rig.pose.bones:  # parents come before their children
         if pb.name not in turns:
             continue
+        for axis, offset in turns[pb.name]:
+            if axis == MOVE:
+                pb.matrix = Matrix.Translation(Vector(offset)) @ pb.matrix
+                bpy.context.view_layer.update()
         head = pb.matrix.translation.copy()
         turn = Matrix.Identity(4)
         curls = []
         for axis, degrees in turns[pb.name]:
+            if axis == MOVE:
+                continue
+            if axis == REACH:
+                calf = pb.children[0]
+                ankle = Vector(degrees[0])
+                bend = knee(head, ankle, pb.length, calf.length, degrees[1])
+                turns.setdefault(calf.name, []).insert(0, (AIM, ankle - bend))
+                axis, degrees = AIM, bend - head
             if axis == AIM:
                 current = (pb.tail - pb.head).normalized()
                 turn = current.rotation_difference(Vector(degrees).normalized()).to_matrix().to_4x4() @ turn
@@ -156,6 +185,7 @@ def animate(name, keys, loop=True):
         pose(turns)
         for pb in rig.pose.bones:
             pb.keyframe_insert("rotation_quaternion", frame=frame)
+        rig.pose.bones["pelvis"].keyframe_insert("location", frame=frame)  # in every clip, so none keeps another's
     rig.animation_data.action = None
     pose({})
 
@@ -192,32 +222,49 @@ def stride(lead):
 animate("walk", {0: stride(1), int(0.5 * FPS): stride(-1), FPS: stride(1)})
 
 
+FOOT = Vector((0.003, -0.137, -0.068))  # ankle to ball of the foot, at rest
+# Where the balls of his feet stand in his guard (world, Blender's: +X his left, -Y ahead, +Z up), and
+# how far each foot turns out (degrees about Z): left foot ahead, right behind, the line between them
+# at about 45 degrees to the way he faces; the rear foot turned out.
+BALLS = {"l": (Vector((0.25, -0.21, 0.009)), 10), "r": (Vector((-0.225, 0.21, 0.009)), 35)}
+TWIST = -18  # his shoulders turned against his hips, left shoulder leading
+
+
+def legs(drop):
+    """His legs bent so his feet stand on BALLS with his pelvis `drop` m lower than at rest (and
+    shifted back over his rear foot)."""
+    turns = {"pelvis": [(MOVE, (0, 0.045, -drop)), (Z, -4), (Y, 5)]}  # hips angled, left hip low
+    for s, side in (("l", 1), ("r", -1)):
+        ball, out = BALLS[s]
+        foot = Matrix.Rotation(math.radians(out * side), 3, Z) @ FOOT
+        turns[f"thigh_{s}"] = [(REACH, (ball - foot, (0.35 * side, -1.0, 0.0)))]
+        turns[f"foot_{s}"] = [(AIM, foot)]
+    return turns
+
+
 def guard(bounce):
-    """His bare-handed fighting stance: fists up by his chin, elbows in, left foot ahead and feet set
-    wide. `bounce` (0..1) dips the chest and fists a little; his legs don't move, so his feet stay put."""
-    stance = {
-        "thigh_l": [(Y, -4), (X, -7)],  # out to his left and a little ahead
-        "thigh_r": [(Y, 4), (X, 4)],  # out to his right and a little behind
-        "spine_01": [(Z, 22), (X, -9 - 2 * bounce)],  # side-on, left shoulder leading, hunched forward
-    }
-    # The arms are aimed (world directions, Blender's: +X his left, -Y ahead, +Z up), so the twist of
-    # his torso doesn't swing them out: upper arms down and forward with the elbows in, forearms up to
-    # fists by his chin, the lead (left) fist a little further out.
-    dip = 0.06 * bounce
+    """His bare-handed fighting stance: knees bent and weight low, feet angled to his opponent, fists
+    up by his chin with the elbows clear of his body, and a zigzag through his hips, chest and head.
+    `bounce` (0..1) sinks him lower on his bent knees; his feet stay put."""
+    stance = merged(legs(0.05 + 0.04 * bounce), {
+        "spine_01": [(Z, TWIST), (X, 4 + 2 * bounce), (Y, -14)],  # chest turned and leaning against the hips
+        "neck_01": [(X, 6), (Y, 16)],  # chin tucked, head tipped back the other way
+    })
+    # The arms reach for points (world, so the twist of his torso doesn't swing them out): wrists up
+    # by his chin, the lead (left) one a little further out, elbows bent down and out, clear of his
+    # sides.
+    dip = 0.05 * bounce
     fists = {
         "clavicle_l": [(Y, -6)],  # shoulders hunched up a little
         "clavicle_r": [(Y, 6)],
-        "upperarm_l": [(AIM, (-0.12, -0.62, -0.78 - dip))],
-        "upperarm_r": [(AIM, (0.18, -0.5, -0.85 - dip))],
-        "lowerarm_l": [(AIM, (-0.3, -0.55, 0.78 - dip))],
-        "lowerarm_r": [(AIM, (0.42, -0.42, 0.8 - dip))],
-        "neck_01": [(X, 6)],  # chin tucked
+        "upperarm_l": [(REACH, ((0.1, -0.17, 1.41 - dip), (0.35, 0.3, -1.0)))],
+        "upperarm_r": [(REACH, ((-0.11, -0.17, 1.45 - dip), (-0.3, 0.1, -1.0)))],
     }
     return merged(stance, fists, fist("l"), fist("r"))
 
 
-# Combat idle (1.5 s): standing in his guard, bouncing gently on the spot.
-animate("combat_idle", {0: guard(0), int(0.75 * FPS): guard(1), int(1.5 * FPS): guard(0)})
+# Combat idle (1.5 s): standing in his guard, bouncing lightly on his bent knees.
+animate("combat_idle", {int(i * 0.375 * FPS): guard((1 - math.cos(i * math.pi / 2)) / 2) for i in range(5)})
 
 
 def punch(side):
@@ -228,7 +275,7 @@ def punch(side):
     reach = (-0.1 * side, -1.0, 0.04)  # straight ahead, angled in a little towards the centre line
     pose_[f"upperarm_{s}"] = [(AIM, reach)]
     pose_[f"lowerarm_{s}"] = [(AIM, reach)]
-    pose_["spine_01"] = [(Z, 26 if side > 0 else -8), (X, 8)]  # turn the punching shoulder forward, lean in
+    pose_["spine_01"] = [(Z, TWIST - 12 if side > 0 else TWIST + 45), (X, 8)]  # punching shoulder forward, lean in
     return pose_
 
 
@@ -245,7 +292,7 @@ animate("attack", {
 def flinch():
     """His guard knocked back: chest and head snapping back, fists lifting a little to cover."""
     pose_ = guard(0)
-    pose_["spine_01"] = [(Z, 22), (X, -20)]
+    pose_["spine_01"] = [(Z, TWIST), (X, -20)]
     pose_["neck_01"] = [(X, -8)]
     return pose_
 
