@@ -10,9 +10,9 @@ extends GutTest
 #   (`lowerarm_l`/`lowerarm_r`); "long sleeves" means some sweater vertices are, on both arms.
 #   "Covering both feet" means some sneaker vertices are weighted mostly to each foot
 #   (`foot_*` or `ball_*`).
-# - "Fits": in the rest pose, no body vertex the piece covers (one within 4 cm of the piece's
-#   surface) lies more than 2 mm outside it, and at least 90% of the piece's vertices are within
-#   3 cm of the body's surface (hems and cuffs may hang a little looser).
+# - "Fits": in the rest pose, no body vertex pokes out through the piece (cloth within 2 cm behind
+#   it along its normal, but none within 4 cm in front), and at least 90% of the piece's vertices
+#   are within 3 cm of the body's surface (hems and cuffs may hang a little looser).
 # - Colours are the average of a piece's albedo texture (sampled) times its albedo colour.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
@@ -222,6 +222,27 @@ func _closest(grid: Dictionary, p: Vector3, reach := 1) -> Array:
 	return best
 
 
+# Whether a ray from `from` along `direction` (a unit vector) hits one of the grid's triangles within
+# `reach` metres.
+func _ray_hits(grid: Dictionary, from: Vector3, direction: Vector3, reach: float) -> bool:
+	var seen := {}
+	var steps := int(ceil(reach / (CELL * 0.5)))
+	for i in steps + 1:
+		var cell := Vector3i(((from + direction * (reach * i / steps)) / CELL).floor())
+		for x in range(cell.x - 1, cell.x + 2):
+			for y in range(cell.y - 1, cell.y + 2):
+				for z in range(cell.z - 1, cell.z + 2):
+					for tri in grid.get(Vector3i(x, y, z), []):
+						var id: int = tri.hash()
+						if seen.has(id):
+							continue
+						seen[id] = true
+						var hit = Geometry3D.ray_intersects_triangle(from, direction, tri[0], tri[1], tri[2])
+						if hit != null and from.distance_to(hit) <= reach:
+							return true
+	return false
+
+
 # Given assets/models/clothes/, when its pieces are loaded, then there's tee_purple.glb,
 # sweater_grey.glb, jeans_blue.glb and sneakers_dark.glb. Each has the same bone names as
 # character.glb's skeleton, and its mesh is skinned to those bones.
@@ -316,21 +337,22 @@ func test_pieces_fit_his_body():
 			continue
 		var surfaces := _surfaces(node)
 		var piece_grid := _grid(surfaces)
-		# No body vertex the piece covers is more than 2 mm outside it.
+		# No body vertex pokes out through it: along the body's own normal, a vertex with cloth within
+		# 2 cm behind it but none within 4 cm in front of it shows through. (Changed with the owner's
+		# go-ahead on #67: judging by the nearest cloth misread clockwise triangles, hems and the
+		# space between trouser legs.) The vertices it covers are those with cloth in front.
 		var covered := 0
 		var poking := 0
-		var worst := 0.0
-		for p in body_points:
-			var hit := _closest(piece_grid, p)
-			if hit.is_empty() or p.distance_to(hit[0]) > 0.04:
-				continue
-			covered += 1
-			var outside: float = (p - hit[0]).dot(hit[1])
-			if outside > 0.002:
-				poking += 1
-				worst = maxf(worst, outside)
+		for surface in body:
+			var points: PackedVector3Array = surface.points
+			var normals: PackedVector3Array = surface.normals
+			for i in points.size():
+				if _ray_hits(piece_grid, points[i], normals[i], 0.04):
+					covered += 1
+				elif _ray_hits(piece_grid, points[i], -normals[i], 0.02):
+					poking += 1
 		assert_gt(covered, 0, "%s covers some of his body" % piece)
-		assert_eq(poking, 0, "no body vertex pokes out through %s (%d do, by up to %.1f cm)" % [piece, poking, worst * 100.0])
+		assert_eq(poking, 0, "no body vertex pokes out through %s (%d do)" % [piece, poking])
 		# At least 90% of the piece's vertices are within 3 cm of his body.
 		var near := 0
 		var points := _all_points(surfaces)
