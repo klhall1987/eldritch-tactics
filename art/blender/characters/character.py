@@ -250,15 +250,17 @@ def guard(bounce):
         "spine_01": [(Z, TWIST), (X, 4 + 2 * bounce), (Y, -14)],  # chest turned and leaning against the hips
         "neck_01": [(X, 6), (Y, 16)],  # chin tucked, head tipped back the other way
     })
-    # The arms reach for points (world, so the twist of his torso doesn't swing them out): wrists up
-    # by his chin, the lead (left) one a little further out, elbows bent down and out, clear of his
-    # sides.
+    # The arms reach for points (world, so the twist of his torso doesn't swing them out): a knife
+    # fighter's guard. The left arm guards close in front of his body, the elbow open enough that the
+    # arm doesn't fold flat; the right (knife) arm reaches out in front of him, the knife at his
+    # opponent.
     dip = 0.05 * bounce
     fists = {
         "clavicle_l": [(Y, -6)],  # shoulders hunched up a little
         "clavicle_r": [(Y, 6)],
-        "upperarm_l": [(REACH, ((0.1, -0.17, 1.41 - dip), (0.35, 0.3, -1.0)))],
-        "upperarm_r": [(REACH, ((-0.11, -0.17, 1.45 - dip), (-0.3, 0.1, -1.0)))],
+        "upperarm_l": [(REACH, ((0.04, -0.175, 1.18 - dip), (0.35, 0.3, -1.0)))],
+        "hand_l": [(AIM, (-0.15, -0.3, 1.0))],  # fist upright, knuckles up
+        "upperarm_r": [(REACH, ((-0.12, -0.42, 1.3 - dip), (-0.4, 0.2, -1.0)))],
     }
     return merged(stance, fists, fist("l"), fist("r"))
 
