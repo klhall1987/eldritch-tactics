@@ -122,8 +122,8 @@ func test_it_fights_with_its_own_clips():
 	assert_eq(player.current_animation, "idle", "then it settles back into idle")
 
 
-# Given he hits the monster, when the slash lands, then a cut opens on its body facing him, between its
-# spine and head bones and within 0.05 m of its skin, and blood sprays from it.
+# Given he hits the monster, when the slash lands, then a cut opens on its body facing him, within
+# 0.05 m of its skin, and blood sprays from it.
 func test_cuts_and_blood_land_on_it():
 	var main := await _main()
 	if main == null:
@@ -156,11 +156,9 @@ func test_cuts_and_blood_land_on_it():
 	assert_true(sprayed, "blood sprays from it")
 	if wound == null:
 		return
-	var skeleton := monster.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
-	var spine_y := (skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone("spine"))).origin.y
-	var head_y := (skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone("head"))).origin.y
+	# (The spine-to-head band check was replaced by #112, as its ticket says: the cut goes at the blade's
+	# height, checked in test_cuts_follow_blade.gd.)
 	var at := wound.global_position
-	assert_between(at.y, spine_y - 0.001, head_y + 0.001, "the cut is on its body, between its spine and head (%.3f m; %.3f-%.3f)" % [at.y, spine_y, head_y])
 	var out := Vector2(at.x - monster.global_position.x, at.z - monster.global_position.z)
 	var to_him := Vector2(body.global_position.x - monster.global_position.x, body.global_position.z - monster.global_position.z)
 	assert_gt(out.dot(to_him), 0.0, "the cut is on the side facing him")
