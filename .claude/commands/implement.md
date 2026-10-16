@@ -32,7 +32,8 @@ Follow the ticket rules in CLAUDE.md.
 
 ## 3. Verify locally
 
-- `bash tools/run_tests.sh`: every test passes.
+- While fixing, run just the relevant test files (`bash tools/run_tests.sh tests/unit/test_<feature>.gd ...`).
+- Then `bash tools/run_tests.sh` (the full suite, once): every test passes.
 - `bash tools/smoke_test.sh`: passes.
 - `git status --porcelain` must list nothing under `tests/`, `addons/gut/`, `.gutconfig.json`,
   `tools/` or `.github/`.

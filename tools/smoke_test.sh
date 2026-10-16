@@ -9,7 +9,8 @@ cd "$(dirname "$0")/.."
 LOG="$(mktemp)"
 
 "$GODOT" --headless --path . --import
-"$GODOT" --headless --path . --quit-after "$FRAMES" 2>&1 | tee "$LOG"
+# --fixed-fps 60: run the frames back to back instead of in real time (same game time per frame).
+"$GODOT" --headless --fixed-fps 60 --path . --quit-after "$FRAMES" 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}
 
 if [ "$status" -ne 0 ]; then

@@ -36,8 +36,9 @@ one per acceptance criterion with its text in a comment above it, `load()` rathe
 interface choices kept small and consistent with the existing code, and every test checking
 something even when the feature is missing. **Only files under `tests/` change in this phase.**
 
-Then verify, as step 5 there says:
-- `bash tools/run_tests.sh`: every existing test passes, and every new test fails for the right
+Then verify, as step 5 there says, running **only the test files you added or changed**
+(`bash tools/run_tests.sh tests/unit/test_<feature>.gd ...`). The full suite runs once, in step 5:
+- every new test fails for the right
   reason (a missing script, node, function or behavior). Typos and parse errors don't count. A new
   test that already passes is only fine if its criterion is already true before the work (say so).
 - `git status --porcelain` lists only paths under `tests/`.
@@ -59,13 +60,15 @@ from Out of scope.
   `.github/`. If a frozen test turns out to be wrong (it contradicts another test or the ticket, or
   can't pass without something out of scope), **stop**. Explain on the issue, propose the test
   change, apply `needs-clarification`, and tell me. Never weaken a test to fit the code.
+- While implementing, run just the ticket's test files (`bash tools/run_tests.sh <files>`), plus the
+  files of any existing tests your change could affect. Save the full suite for step 5.
 - Look at the result, not just the tests. For art, check the previews or render the model. For
   scenes, capture a frame of the running game. Fix what the tests can't see.
 
 ## 5. Verify everything
 
-- `bash tools/run_tests.sh`: every test passes. If any test is timing- or randomness-sensitive, run
-  the suite more than once.
+- `bash tools/run_tests.sh` (the full suite, once): every test passes. Run it a second time only if
+  a new test depends on timing or randomness that the seeds don't fix.
 - `bash tools/smoke_test.sh`: passes.
 - Run the fingerprint command again. It must match the one from step 3, proving the tests are
   exactly as written before implementing. If it doesn't, find out why and stop.
