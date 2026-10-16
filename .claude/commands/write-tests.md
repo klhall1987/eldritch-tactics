@@ -75,7 +75,7 @@ Otherwise:
 
 ## 5. Verify
 
-- `bash tools/run_tests.sh`: every existing test must pass. Every new test must fail, and for the
+- `bash tools/run_tests.sh tests/unit/test_<feature>.gd` (plus any test files you changed): every new test must fail, and for the
   right reason: a missing script, function or behavior. Typos and parse errors don't count.
 - `git status --porcelain` must list only paths under `tests/`.
 

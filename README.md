@@ -14,7 +14,7 @@ change.
 ## Checks
 
 ```bash
-bash tools/run_tests.sh    # unit tests (GUT), exit 0 = pass
+bash tools/run_tests.sh    # unit tests (GUT), exit 0 = pass; pass test files to run just those
 bash tools/smoke_test.sh   # runs the main scene headless for 300 frames, fails on errors
 ```
 

@@ -7,7 +7,8 @@ isometric angle.
 
 - GDScript, Godot 4.7.2. Game code lives in `scripts/` and `scenes/`.
 - Unit tests use GUT 9.7 and live in `tests/unit/test_*.gd` (extends `GutTest`).
-- Run the tests: `bash tools/run_tests.sh` (exit 0 = all pass).
+- Run the tests: `bash tools/run_tests.sh` (exit 0 = all pass), or just some files with
+  `bash tools/run_tests.sh tests/unit/test_foo.gd ...` while iterating.
 - Run the smoke test: `bash tools/smoke_test.sh` (runs the main scene headless).
 - Both scripts need Godot. `GODOT` is set in `.claude/settings.local.json` on this machine.
 - There is no art yet. Until there is, tickets use simple placeholder meshes (boxes, capsules,
