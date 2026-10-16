@@ -1,7 +1,8 @@
 extends GutTest
-# The player character's attack and hit animations (ticket #79): character.glb has `attack`, a jab
-# then a cross thrown from his guard, and `hit`, a flinch backwards. Both play once and start and end
-# in his guard (combat_idle's first frame), with his feet staying put.
+# The player character's attack and hit animations (ticket #79): character.glb has `attack` and `hit`,
+# a flinch backwards. Both play once and start and end in his guard (combat_idle's first frame), with
+# his feet staying put. Since #92, `attack` is two knife slashes with his right hand (a forehand, then a
+# backhand) while his left fist stays up; it was a jab then a cross.
 #
 # Interface these tests choose: his fists are the skeleton's `hand_l`/`hand_r`, his head is `head`,
 # his feet are the lowest bone on each side (as in #65's and #71's tests), and forward is his +Z.
@@ -104,35 +105,60 @@ func test_attack_and_hit_clips_start_and_end_in_his_guard():
 		assert_lte(finish, 0.03, "%s ends in his guard (%.3f m off)" % [clip, finish])
 
 
-# Given attack is sampled, when his fists are measured, then each fist (hand_l, hand_r) shoots out
-# once: at least 0.25 m further forward than in his guard at its peak. The left fist peaks in the
-# first half of the clip and the right fist in the second half.
-func test_attack_throws_a_jab_then_a_cross():
+# (Replaces #79's jab-and-cross test, as #92 says.)
+# Given attack is sampled, when his right hand (hand_r, holding the knife) is tracked, then in the
+# first half of the clip it sweeps at least 0.3 m across his front in one direction (the forehand),
+# and in the second half at least 0.3 m back the other way (the backhand).
+func test_attack_slashes_forehand_then_backhand():
 	var rig := _rig()
 	if rig.is_empty():
 		return
 	var player: AnimationPlayer = rig[1]
 	var skeleton: Skeleton3D = rig[2]
+	assert_gte(skeleton.find_bone("hand_r"), 0, "his skeleton has hand_r")
+	if skeleton.find_bone("hand_r") < 0:
+		return
 	var length := player.get_animation("attack").length
-	var guard := _pose_at(rig, "combat_idle", 0.0)
-	for hand in ["hand_l", "hand_r"]:
-		var bone := skeleton.find_bone(hand)
-		assert_gte(bone, 0, "his skeleton has %s" % hand)
-		if bone < 0:
+	var to_left := _sweep_towards(rig, 0.0, length / 2.0, 1.0)
+	var to_right := _sweep_towards(rig, 0.0, length / 2.0, -1.0)
+	var forehand := maxf(to_left, to_right)
+	assert_gte(forehand, 0.3, "in the first half his knife hand sweeps at least 0.3 m across (%.2f m)" % forehand)
+	var back := _sweep_towards(rig, length / 2.0, length, -1.0 if to_left >= to_right else 1.0)
+	assert_gte(back, 0.3, "in the second half it sweeps at least 0.3 m back the other way (%.2f m)" % back)
+
+
+# The furthest his right hand sweeps along x in `direction` (+1 or -1) between `from` and `to` s.
+func _sweep_towards(rig: Array, from: float, to: float, direction: float) -> float:
+	var bone := (rig[2] as Skeleton3D).find_bone("hand_r")
+	var xs := []
+	for i in SAMPLES + 1:
+		xs.append(_pose_at(rig, "attack", from + (to - from) * i / SAMPLES)[bone].x)
+	var best := 0.0
+	for a in xs.size():
+		for b in range(a + 1, xs.size()):
+			best = maxf(best, (xs[b] - xs[a]) * direction)
+	return best
+
+
+# Given attack is sampled, when his left hand (hand_l) is tracked, then it stays within 0.1 m of where
+# it is in his guard (combat_idle's first frame): his left fist stays up.
+func test_left_fist_stays_up():
+	var rig := _rig()
+	if rig.is_empty():
+		return
+	var player: AnimationPlayer = rig[1]
+	var skeleton: Skeleton3D = rig[2]
+	var bone := skeleton.find_bone("hand_l")
+	assert_gte(bone, 0, "his skeleton has hand_l")
+	if bone < 0:
+		return
+	var length := player.get_animation("attack").length
+	var guard: Vector3 = _pose_at(rig, "combat_idle", 0.0)[bone]
+	for i in SAMPLES + 1:
+		var moved: float = (_pose_at(rig, "attack", length * i / SAMPLES)[bone] as Vector3).distance_to(guard)
+		assert_lte(moved, 0.1, "his left fist stays up in his guard (%.3f m from it)" % moved)
+		if moved > 0.1:
 			return
-		var best := -INF
-		var best_t := 0.0
-		for i in SAMPLES + 1:
-			var t := length * i / SAMPLES
-			var reach: float = _pose_at(rig, "attack", t)[bone].z - guard[bone].z
-			if reach > best:
-				best = reach
-				best_t = t
-		assert_gte(best, 0.25, "%s shoots out at least 0.25 m from his guard (%.2f m)" % [hand, best])
-		if hand == "hand_l":
-			assert_lt(best_t, length / 2.0, "the left fist peaks in the first half (at %.2f of %.2f s)" % [best_t, length])
-		else:
-			assert_gt(best_t, length / 2.0, "the right fist peaks in the second half (at %.2f of %.2f s)" % [best_t, length])
 
 
 # Given hit is sampled, when his head is measured, then it rocks back at least 0.08 m from where it
