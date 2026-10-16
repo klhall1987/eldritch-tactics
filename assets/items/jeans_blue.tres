@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/clothing_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Blue jeans"
+piece = "res://assets/models/clothes/jeans_blue.glb"
+slot = "bottom"
