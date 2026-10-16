@@ -218,11 +218,14 @@ func test_light_bouncing_guard():
 # Collision capsule fit: Given combat_idle is sampled, when his upper body (everything from the pelvis
 # up: arms, fists, head) is measured from above, then every bone stays within the Player's collision
 # capsule radius (0.27 m, #68) of his origin.
+# (Changed by #100, as its ticket says: his right arm, from `upperarm_r` down, is left out, since his
+# knife arm reaches out of the capsule in the knife fighter's guard.)
 func test_upper_body_fits_the_capsule():
 	var rig := _rig()
 	if rig.is_empty():
 		return
 	var skeleton: Skeleton3D = rig[2]
+	var knife_arm := skeleton.find_bone("upperarm_r")
 	var upper := []
 	for b in skeleton.get_bone_count():
 		var name := skeleton.get_bone_name(b)
@@ -230,7 +233,7 @@ func test_upper_body_fits_the_capsule():
 		for prefix: String in LEG_PREFIXES:
 			if name.begins_with(prefix):
 				leg = true
-		if not leg and name != "Root":
+		if not leg and name != "Root" and not _in_limb(skeleton, b, knife_arm):
 			upper.append(b)
 	assert_gt(upper.size(), 10, "his upper body has bones to measure")
 	for pose in _samples(rig, "combat_idle"):
@@ -239,3 +242,12 @@ func test_upper_body_fits_the_capsule():
 			assert_lte(reach, CAPSULE_RADIUS, "%s stays inside his capsule (%.3f m from his origin)" % [skeleton.get_bone_name(b), reach])
 			if reach > CAPSULE_RADIUS:
 				return
+
+
+# Whether bone `b` is `limb` or hangs below it.
+func _in_limb(skeleton: Skeleton3D, b: int, limb: int) -> bool:
+	while b >= 0:
+		if b == limb:
+			return true
+		b = skeleton.get_bone_parent(b)
+	return false
