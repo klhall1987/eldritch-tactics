@@ -56,3 +56,15 @@ from MakeHuman asset packs. Every one is CC0 1.0, as its `.mhclo` header states.
 | `toigo_fisherman_sweater/` | Shirts 01 (as above) | the grey sweater (dyed) |
 | `toigo_wool_pants/` | Pants 01, https://files2.makehumancommunity.org/asset_packs/pants01/pants01_cc0.zip | the blue jeans (dyed denim blue, legs tapered) |
 | `shoes02/` | MakeHuman system assets (as above) | the dark sneakers (darkened) |
+
+## Creature Creator (the monster)
+
+The monster (`art/blender/characters/monster.py` → `assets/models/characters/monster.glb`) is built
+with **Creature Creator for Blender** by Joey Carlino (https://joeycarlino.itch.io/creature-creator-for-blender,
+also https://joeycarlino.gumroad.com/l/creature), licensed **CC BY 4.0**
+(https://creativecommons.org/licenses/by/4.0/). Changes: the monster's body, head, legs and mandibles
+are grown with the Creature Creator's `Body Tool` along new curves, turned into meshes, decimated,
+recoloured, given glowing eyes, and rigged and animated for this game.
+
+Like MPFB, the tool isn't committed here: it's the owner's `creature_creator_v1.blend`, which the build
+script reads from the `CREATURE_CREATOR` path (set in `.claude/settings.local.json`).
