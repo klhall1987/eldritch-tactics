@@ -9,8 +9,8 @@ signal path_finished
 
 const KNIFE := preload("res://assets/models/props/knife.glb")
 ## How far the knife's blade tips forward from the line of his knuckles (1 = 45 degrees), so it points
-## past his fist rather than up at his face in the guard.
-const KNIFE_TILT := 0.0
+## out past his fist at his opponent from his outstretched knife hand (#100).
+const KNIFE_TILT := 1.5
 
 ## Walking speed in metres per second.
 @export var speed := 2.5
