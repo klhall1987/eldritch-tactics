@@ -36,6 +36,7 @@ const BODY_HEIGHT := 1.8
 const HIT_AT := 0.7
 
 const Wounds := preload("res://scripts/wounds.gd")
+const Blood := preload("res://scripts/blood.gd")
 
 ## The player character's combatant (his Player body). He wins initiative ties that nothing else breaks.
 @export var detective_path: NodePath
@@ -195,7 +196,7 @@ func attack(attacker: Node3D, target: Node3D) -> Dictionary:
 		"critical": critical, "damage_rolls": damage_rolls, "damage": damage,
 	}
 	attack_resolved.emit(result)
-	_animate_attack(attacker, target, hit)
+	_animate_attack(attacker, target, hit, critical)
 	if hit:
 		apply_damage(target, damage)
 	return result
@@ -398,9 +399,10 @@ func _approach_path(enemy: Node3D) -> PackedVector3Array:
 
 
 ## The attacker throws its `attack`; on a hit, the target flinches (`hit`) as the second blow lands,
-## HIT_AT of the way through the attack, and the player character's knife opens a cut on it (#93).
+## HIT_AT of the way through the attack, and the player character's knife opens a cut on it (#93) that
+## sprays blood, much more on a critical hit (#94).
 ## Enemies settle back into `idle` when a clip finishes (the player's own script picks his stance).
-func _animate_attack(attacker: Node3D, target: Node3D, hit: bool) -> void:
+func _animate_attack(attacker: Node3D, target: Node3D, hit: bool, critical: bool) -> void:
 	if not _perform(attacker, &"attack") or not hit:
 		return
 	var delay := _clip_length(attacker, &"attack") * HIT_AT
@@ -408,7 +410,9 @@ func _animate_attack(attacker: Node3D, target: Node3D, hit: bool) -> void:
 		if is_instance_valid(target):
 			_perform(target, &"hit")
 			if attacker == detective and is_instance_valid(attacker):
-				Wounds.open(target, attacker, _wound_rng))
+				var wound := Wounds.open(target, attacker, _wound_rng)
+				if wound != null:
+					Blood.spray(wound, target, attacker, critical))
 
 
 ## Plays `clip` on `combatant` from the start; returns false if it has no such clip.
