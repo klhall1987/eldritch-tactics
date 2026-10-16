@@ -16,6 +16,8 @@ extends Node
 ## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`, `max_hit_points`).
 
 ## Emitted when a combatant's turn begins.
+## Emitted when combat starts, once initiative is rolled and the turn order set (before the first turn).
+signal combat_started
 signal turn_started(combatant: Node3D)
 ## Emitted when an attack is resolved, with what `attack` returns.
 signal attack_resolved(result: Dictionary)
@@ -289,10 +291,16 @@ func _hide_preview() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if running and active == detective and Input.is_action_just_pressed("end_turn"):
-		end_turn()
-	elif running and active != detective and _enemy_step != EnemyStep.NONE:
+	if Input.is_action_just_pressed("end_turn"):
+		request_end_turn()
+	if running and active != detective and _enemy_step != EnemyStep.NONE:
 		_play_enemy_turn(delta)
+
+
+## The player asking to end the turn (the End Turn key or button): ends it only on the detective's turn.
+func request_end_turn() -> void:
+	if running and active == detective:
+		end_turn()
 
 
 ## Plays the active enemy's turn a tick at a time: think, walk towards the detective, attack, end.
@@ -399,6 +407,7 @@ func start_combat(fighters: Array) -> void:
 	turn_order.assign(order_by_initiative(rolls))
 	running = true
 	round = 1
+	combat_started.emit()
 	_start_turn(turn_order[0])
 
 
