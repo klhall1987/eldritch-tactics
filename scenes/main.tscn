@@ -18,6 +18,7 @@
 [ext_resource type="Resource" path="res://assets/items/sneakers_dark.tres" id="16_sneakers"]
 [ext_resource type="Resource" path="res://assets/items/sweater_grey.tres" id="17_sweater"]
 [ext_resource type="Script" path="res://scripts/inventory_screen.gd" id="18_inventory_screen"]
+[ext_resource type="Script" path="res://scripts/turn_rings.gd" id="20_turn_rings"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -134,6 +135,10 @@ billboard = 1
 no_depth_test = true
 font_size = 48
 outline_size = 12
+
+[node name="TurnRings" type="Node3D" parent="."]
+script = ExtResource("20_turn_rings")
+controller_path = NodePath("../CombatController")
 
 [node name="CombatHUD" type="CanvasLayer" parent="."]
 script = ExtResource("11_hud")
