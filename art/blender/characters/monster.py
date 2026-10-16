@@ -34,17 +34,20 @@ scene.render.fps = kit.FPS
 BODY_TOOL = bpy.data.objects["Body Tool.005"]  # the Creature Creator's own body tool, copied for each part
 
 # Blender axes: +X its left, -Y in front of it, +Z up. Its feet touch z = 0.
-HIP_Z = 0.55
+# Compact, so it fits about 0.31 m round (its legs aside), like the cultist it replaces: a round body
+# with its head tucked in front, the legs high-kneed and splayed just enough to keep its footprint small.
+HIP_Z = 0.5
 LEGS = {  # leg: (hip, knee, foot), on its left; the right side mirrors them
-    "leg_1": ((0.14, -0.1, HIP_Z), (0.36, -0.24, 0.8), (0.5, -0.36, 0.0)),
-    "leg_2": ((0.14, 0.14, HIP_Z), (0.38, 0.26, 0.78), (0.52, 0.4, 0.0)),
+    "leg_1": ((0.12, -0.05, HIP_Z), (0.28, -0.12, 0.9), (0.33, -0.2, 0.0)),
+    "leg_2": ((0.12, 0.1, HIP_Z), (0.28, 0.16, 0.88), (0.33, 0.22, 0.0)),
 }
-MANDIBLE = ((0.06, -0.44, 0.58), (0.13, -0.54, 0.52), (0.05, -0.62, 0.47))  # root, bend, tip (its left)
+MANDIBLE = ((0.05, -0.21, 0.52), (0.1, -0.27, 0.48), (0.035, -0.31, 0.45))  # root, bend, tip (its left)
 
 
-def body_tool(name, points):
+def body_tool(name, points, handles="AUTO"):
     """A mesh grown by the Body Tool around a curve through `points`, [(position, radius), ...]; the
-    body is about 0.4 x the radius across (at least 0.04 m)."""
+    body is about 0.4 x the radius across (at least 0.04 m). `handles` "VECTOR" makes the curve straight
+    segments (jointed legs) rather than smooth."""
     obj = BODY_TOOL.copy()
     obj.data = BODY_TOOL.data.copy()
     scene.collection.objects.link(obj)
@@ -57,7 +60,7 @@ def body_tool(name, points):
     spline.bezier_points.add(len(points) - 1)
     for point, (at, radius) in zip(spline.bezier_points, points):
         point.co, point.radius = at, radius
-        point.handle_left_type = point.handle_right_type = "AUTO"
+        point.handle_left_type = point.handle_right_type = handles
     bpy.context.view_layer.update()
     evaluated = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
     mesh = bpy.data.meshes.new_from_object(evaluated)
@@ -98,19 +101,21 @@ skin = kit.material("monster_skin", (0.045, 0.055, 0.04), roughness=0.55)
 glow = kit.material("monster_eyes", (0.5, 1.0, 0.3), emission=(0.5, 1.0, 0.3))
 
 parts = []
-abdomen = body_tool("abdomen", [((0, 0.32, 0.6), 1.0), ((0, 0.08, 0.62), 1.6), ((0, -0.18, 0.64), 1.25)])
+abdomen = body_tool("abdomen", [((0, 0.1, 0.55), 1.1), ((0, 0.03, 0.56), 1.3), ((0, -0.04, 0.57), 1.05)])
 follow(abdomen, "spine")
-head = body_tool("head", [((0, -0.26, 0.68), 0.85), ((0, -0.4, 0.64), 0.7)])
+head = body_tool("head", [((0, -0.12, 0.6), 0.75), ((0, -0.17, 0.58), 0.6)])
 follow(head, "head")
 parts += [kit.decimate(abdomen, 0.22), kit.decimate(head, 0.35)]
 # `root` never moves: the legs hang from it (not from the body), so the body can lunge and recoil
 # while the feet stay planted.
-bones = [("root", (0, 0.05, 0.3), (0, 0.05, 0.45), None), ("spine", (0, 0.3, 0.6), (0, -0.16, 0.64), "root"),
-         ("head", (0, -0.22, 0.66), (0, -0.44, 0.64), "spine")]
+# `spine` starts low in the body and `head` high on the head, so its torso (between them, where cuts
+# go, #93) spans its height.
+bones = [("root", (0, 0.02, 0.3), (0, 0.02, 0.4), None), ("spine", (0, 0.03, 0.42), (0, -0.06, 0.6), "root"),
+         ("head", (0, -0.14, 0.74), (0, -0.24, 0.68), "spine")]
 # The Body Tool mirrors what it grows across X, so each pair of legs (and the mandibles) is one curve
 # on its left; every vertex then follows the nearest bone on whichever side it is.
 for leg, (hip, knee, foot) in LEGS.items():
-    part = body_tool(leg, [(hip, 0.32), (knee, 0.24), (foot, 0.2)])
+    part = body_tool(leg, [(hip, 0.32), (knee, 0.24), (foot, 0.2)], handles="VECTOR")
     segments = []
     for side, s in ((1, "l"), (-1, "r")):
         h, k, f = mirrored(hip, side), mirrored(knee, side), mirrored(foot, side)
@@ -128,8 +133,8 @@ for side, s in ((1, "l"), (-1, "r")):
 follow_nearest(mandibles, segments)
 parts.append(kit.decimate(mandibles, 0.6))
 # A cluster of glowing eyes across the front of its head: two big, four small.
-for x, z, r in ((0.07, 0.72, 0.03), (-0.07, 0.72, 0.03), (0.13, 0.67, 0.018), (-0.13, 0.67, 0.018), (0.04, 0.78, 0.016), (-0.04, 0.78, 0.016)):
-    eye = kit.ball("eye", r, subdivisions=2, location=(x, -0.45 + abs(x) * 0.6, z), mat=glow)
+for x, z, r in ((0.05, 0.64, 0.025), (-0.05, 0.64, 0.025), (0.1, 0.6, 0.015), (-0.1, 0.6, 0.015), (0.03, 0.69, 0.013), (-0.03, 0.69, 0.013)):
+    eye = kit.ball("eye", r, subdivisions=2, location=(x, -0.255 + abs(x) * 0.7, z), mat=glow)
     follow(eye, "head")
     parts.append(eye)
 for part in parts:
@@ -259,9 +264,9 @@ animate("walk", {
 # controller's HIT_AT (0.7 of the way through).
 animate("attack", {
     0.0: {},
-    0.15: merged(body(forward=-0.03), jaws(24)),
+    0.15: merged(body(forward=-0.03), jaws(50)),
     0.32: merged(body(forward=0.13)),
-    0.6: merged(body(forward=-0.02), jaws(24)),
+    0.6: merged(body(forward=-0.02), jaws(50)),
     0.84: merged(body(forward=0.14)),
     1.2: {},
 }, loop=False)

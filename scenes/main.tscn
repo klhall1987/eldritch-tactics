@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://ce8drhw0bhpsw" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bm2hphniofr4q" path="res://assets/models/environments/garage.glb" id="2_garage"]
 [ext_resource type="PackedScene" path="res://assets/models/characters/character.glb" id="3_character"]
-[ext_resource type="PackedScene" uid="uid://c5mx8nhifwxod" path="res://assets/models/characters/cultist.glb" id="4_cultist"]
+[ext_resource type="PackedScene" uid="uid://ge6p25e28yx0" path="res://assets/models/characters/monster.glb" id="4_cultist"]
 [ext_resource type="Script" uid="uid://bw4qkcj37vgg" path="res://scripts/follow_camera.gd" id="5_follow"]
 [ext_resource type="Script" uid="uid://c087yug6bd7ys" path="res://scripts/flicker_light.gd" id="6_flicker"]
 [ext_resource type="Script" uid="uid://b1db57fh20204" path="res://scripts/player.gd" id="7_player"]
@@ -34,7 +34,7 @@ height = 1.8
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_touch"]
 height = 1.8
-radius = 0.6
+radius = 0.71
 
 [node name="Main" type="Node3D" unique_id=1823562234]
 script = ExtResource("1_main")
