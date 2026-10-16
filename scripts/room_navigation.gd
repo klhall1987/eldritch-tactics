@@ -1,14 +1,14 @@
 extends NavigationRegion3D
 ## The garage's walkable floor for paths in combat, baked when the scene starts: the floor, with
 ## RoomCollision's boxes (props, walls and the open-side barriers) cut out, shrunk by the
-## detective's radius so a path never brushes a box.
+## player character's radius so a path never brushes a box.
 
 ## The garage instance whose floor is walked on.
 @export var garage_path: NodePath
 ## The RoomCollision body whose boxes block paths. It must come before this node in the tree, so
 ## its boxes exist when this bakes.
 @export var room_path: NodePath
-## How far paths keep from the boxes: a little more than the detective's capsule radius.
+## How far paths keep from the boxes: a little more than the player character's capsule radius.
 @export var agent_radius := 0.3
 
 

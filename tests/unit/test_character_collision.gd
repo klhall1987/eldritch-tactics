@@ -39,12 +39,12 @@ func _main() -> Node3D:
 
 # The physics body that carries the Detective (from #28), or null (after failing the test).
 func _body(main: Node) -> CharacterBody3D:
-	var detective := main.find_child("Detective", true, false)
-	assert_not_null(detective, "the main scene has the Detective")
+	var detective := main.find_child("Character", true, false)
+	assert_not_null(detective, "the main scene has the Character")
 	var node := detective
 	while node != null and not node is CharacterBody3D:
 		node = node.get_parent()
-	assert_not_null(node, "the Detective is carried by a CharacterBody3D")
+	assert_not_null(node, "the Character is carried by a CharacterBody3D")
 	return node as CharacterBody3D
 
 
@@ -131,7 +131,7 @@ func test_props_block_him():
 		return
 	var body := _body(main)
 	var garage := main.find_child("Garage", true, false)
-	var detective := main.find_child("Detective", true, false)
+	var detective := main.find_child("Character", true, false)
 	assert_not_null(garage, "the main scene has the Garage")
 	if body == null or garage == null or detective == null:
 		return
@@ -198,7 +198,7 @@ func test_barriers_are_invisible():
 	if main == null:
 		return
 	var expected := []  # every mesh comes from the garage or the two characters
-	for owner_name in ["Garage", "Detective", "Cultist"]:
+	for owner_name in ["Garage", "Character", "Cultist"]:
 		var node := main.find_child(owner_name, true, false)
 		assert_not_null(node, "the main scene has %s" % owner_name)
 		if node != null:

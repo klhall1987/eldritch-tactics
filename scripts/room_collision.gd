@@ -1,18 +1,18 @@
 extends StaticBody3D
-## The garage's collision, built when the scene starts: a box for each prop the detective must
+## The garage's collision, built when the scene starts: a box for each prop the player character must
 ## walk around (sized from its meshes), the two back walls, and invisible barriers just past the
 ## two open camera sides, so he stays on the floor. Nothing here is drawn.
 
 ## The garage instance to build collision for.
 @export var garage_path: NodePath
-## Props that block the detective. Smaller clutter (boxes, the TV crate, the bulb) doesn't.
+## Props that block the player character. Smaller clutter (boxes, the TV crate, the bulb) doesn't.
 @export var props: PackedStringArray = ["workbench", "couch", "shelves", "fridge", "mattress", "garage_door"]
 ## How tall every box is. Taller than anyone, so even a low prop like the mattress is a wall to
-## the detective's capsule rather than a ledge he could slide up onto.
+## the player character's capsule rather than a ledge he could slide up onto.
 @export var height := 3.0
 ## How thick the invisible barriers past the open sides are.
 @export var barrier_thickness := 0.5
-## Gaps between boxes narrower than this (the detective's width) are filled in, so he meets a flat
+## Gaps between boxes narrower than this (the player character's width) are filled in, so he meets a flat
 ## face instead of wedging his capsule into a slot he can't fit through.
 @export var min_gap := 0.5
 
