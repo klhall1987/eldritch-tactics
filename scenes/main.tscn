@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/combat_controller.gd" id="9_combat"]
 [ext_resource type="Script" path="res://scripts/room_navigation.gd" id="10_nav"]
 [ext_resource type="Script" path="res://scripts/combat_hud.gd" id="11_hud"]
+[ext_resource type="Script" path="res://scripts/outfit.gd" id="12_outfit"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -21,7 +22,7 @@ ambient_light_energy = 0.3
 glow_enabled = true
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
-radius = 0.25
+radius = 0.27
 height = 1.8
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_touch"]
@@ -64,6 +65,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_player")
 
 [node name="Character" parent="Player" instance=ExtResource("3_character")]
+
+[node name="Outfit" type="Node" parent="Player"]
+script = ExtResource("12_outfit")
+character_path = NodePath("../Character")
 
 [node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
