@@ -41,6 +41,9 @@ their `.import` files) the first time it imports it: commit those too.
     sliders, fits a low-poly body, eyes, brows, lashes and hair on MPFB's game-engine skeleton, and
     swaps MPFB's materials for plain textured ones that export cleanly. Clothes for him are separate
     models fitted to the same body and skeleton.
+  - **The monster is built with the Creature Creator** (CC BY 4.0; see `art/base/README.md`):
+    `art/blender/characters/monster.py` opens the owner's Creature Creator file (path in `CREATURE_CREATOR`),
+    grows its parts with the tool's `Body Tool`, and exports only the finished, rigged monster.
   - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
