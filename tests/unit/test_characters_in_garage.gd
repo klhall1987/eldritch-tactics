@@ -3,7 +3,7 @@ extends GutTest
 # each other on the garage floor, clear of the props, in view of the camera, playing idle.
 
 const DETECTIVE_PATH := "res://assets/models/characters/character.glb"  # the player character (#66)
-const CULTIST_PATH := "res://assets/models/characters/cultist.glb"
+const CULTIST_PATH := "res://assets/models/characters/monster.glb"  # the monster since #108 (was cultist.glb)
 const PROPS := ["garage_door", "workbench", "couch", "shelves", "fridge", "mattress"]
 
 
@@ -77,7 +77,7 @@ func _animation_player(character: Node) -> AnimationPlayer:
 
 # Given the main scene, when it is instantiated, then it contains an instance of
 # res://assets/models/characters/detective.glb named Detective and an instance of
-# res://assets/models/characters/cultist.glb named Cultist.
+# res://assets/models/characters/monster.glb named Cultist (the monster since #108; it was cultist.glb).
 func test_main_scene_has_detective_and_cultist():
 	var main := _main()
 	if main == null:
@@ -86,7 +86,7 @@ func test_main_scene_has_detective_and_cultist():
 	if characters.is_empty():
 		return
 	assert_eq(characters[0].scene_file_path, DETECTIVE_PATH, "Character is an instance of the character model")
-	assert_eq(characters[1].scene_file_path, CULTIST_PATH, "Cultist is an instance of the cultist model")
+	assert_eq(characters[1].scene_file_path, CULTIST_PATH, "Cultist is an instance of the monster model")
 
 
 # Given the main scene, when the characters' positions are measured, then both stand on the floor
