@@ -6,14 +6,14 @@ extends Node
 ## new round begins. On his turn the player character moves by clicking the floor: the path under the mouse
 ## is previewed with its length, and a click walks him along it if it fits his movement left.
 ## Clicking an enemy within reach (1.5 m between their bodies' edges) spends his action on an attack:
-## a d20 plus attack bonus against Armour Class, damage dice on a hit, a natural 20 a critical hit
-## (double dice) and a natural 1 always a miss.
+## a pool of d6 (#120): each 4+ a success, a pair of 6s four (a critical), a hit when the successes reach
+## the target's defence, and damage of the weapon's plus the successes beyond it.
 ## A hit takes its damage off the target's hit points; at 0 a combatant is defeated and leaves the turn
 ## order. Combat ends in victory when no enemy is left standing, or in defeat if the player character falls.
 ## Enemies play their own turns: after a short pause an enemy shambles along a path towards the
 ## player character (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
-## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_bonus`,
-## `armour_class`, `damage_dice`, `damage_die`, `damage_bonus`, `body_radius`, `max_hit_points`).
+## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_pool`,
+## `defence`, `weapon_damage`, `body_radius`, `max_hit_points`).
 
 ## Emitted when a combatant's turn begins.
 ## Emitted when combat starts, once initiative is rolled and the turn order set (before the first turn).
@@ -176,31 +176,43 @@ func _edge_gap(a: Node3D, b: Node3D) -> float:
 
 
 ## Resolves one attack by `attacker` on `target` with the seeded dice, spending the attacker's action
-## if it's their turn. Returns (and emits with `attack_resolved`) what happened: `attacker`,
-## `target`, `roll` (the d20), `total`, `hit`, `critical`, `damage_rolls` and `damage`.
+## if it's their turn (#48). Since #120 it's a pool of d6, like Vampire: The Masquerade: the attacker
+## rolls their attack pool, each die of 4+ is a success and each pair of 6s counts as four; it hits if
+## the successes reach the target's defence (none at all is a total failure, a miss), with a pair of 6s
+## making it a critical; the damage is the weapon's plus the successes beyond the defence, at least 1.
+## Returns (and emits with `attack_resolved`) what happened: `attacker`, `target`, `dice`,
+## `successes`, `defence`, `hit`, `critical` and `damage`.
 func attack(attacker: Node3D, target: Node3D) -> Dictionary:
 	if active == attacker:
 		actions_left = maxi(actions_left - 1, 0)
-	var roll := roll_d20()
-	var total := roll + attack_bonus(attacker)
-	var critical := roll == 20
-	var hit := critical or (roll != 1 and total >= armour_class(target))
-	var damage_rolls: Array[int] = []
-	var damage := 0
-	if hit:
-		var dice: int = attacker.get_meta("damage_dice", 1) * (2 if critical else 1)
-		for i in dice:
-			damage_rolls.append(rng.randi_range(1, attacker.get_meta("damage_die", 4)))
-		damage = damage_rolls.reduce(func(sum: int, die: int) -> int: return sum + die, 0) + int(attacker.get_meta("damage_bonus", 0))
+	var dice := roll_pool(attack_pool(attacker))
+	var successes := count_successes(dice)
+	var against := defence(target)
+	var hit := successes > 0 and successes >= against
+	var critical := hit and dice.count(6) >= 2
+	var damage := maxi(1, weapon_damage(attacker) + successes - against) if hit else 0
 	var result := {
-		"attacker": attacker, "target": target, "roll": roll, "total": total, "hit": hit,
-		"critical": critical, "damage_rolls": damage_rolls, "damage": damage,
+		"attacker": attacker, "target": target, "dice": dice, "successes": successes,
+		"defence": against, "hit": hit, "critical": critical, "damage": damage,
 	}
 	attack_resolved.emit(result)
 	_animate_attack(attacker, target, hit, critical)
 	if hit:
 		apply_damage(target, damage)
 	return result
+
+
+## `size` d6 from the seeded dice (#120).
+func roll_pool(size: int) -> Array[int]:
+	var dice: Array[int] = []
+	for i in size:
+		dice.append(rng.randi_range(1, 6))
+	return dice
+
+
+## The successes in a pool (#120): one per die of 4 or more, and each pair of 6s counts as four.
+func count_successes(dice: Array) -> int:
+	return dice.filter(func(die: int) -> bool: return die >= 4).size() + (dice.count(6) / 2) * 2
 
 
 func max_hit_points(combatant: Node) -> int:
@@ -237,12 +249,19 @@ func _end_combat(outcome: Signal) -> void:
 	outcome.emit()
 
 
-func attack_bonus(combatant: Node) -> int:
-	return combatant.get_meta("attack_bonus", 0)
+## How many d6 a combatant rolls to attack (#120).
+func attack_pool(combatant: Node) -> int:
+	return combatant.get_meta("attack_pool", 1)
 
 
-func armour_class(combatant: Node) -> int:
-	return combatant.get_meta("armour_class", 10)
+## How many successes it takes to hit a combatant (#120).
+func defence(combatant: Node) -> int:
+	return combatant.get_meta("defence", 1)
+
+
+## A combatant's weapon damage, before the successes beyond the defence are added (#120).
+func weapon_damage(combatant: Node) -> int:
+	return combatant.get_meta("weapon_damage", 1)
 
 
 ## Previews the path from the player character to the floor point under `screen_position`.
