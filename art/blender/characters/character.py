@@ -20,6 +20,7 @@ import sys
 import bmesh
 import bpy
 from mathutils import Matrix, Quaternion, Vector
+from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import human
@@ -35,7 +36,61 @@ eyes = human.asset(basemesh, "eyes/low-poly/low-poly.mhclo", "Eyes")
 brows = human.asset(basemesh, "eyebrows/eyebrow001/eyebrow001.mhclo", "Eyebrows")
 lashes = human.asset(basemesh, "eyelashes/eyelashes01/eyelashes01.mhclo", "Eyelashes")
 hair = human.asset(basemesh, "hair/short02/short02.mhclo", "Hair")
-bpy.data.objects.remove(basemesh)  # the full-resolution mesh: only its low-poly body is shipped
+
+# A denser body (#116): the low-poly body's faces cut into four, so it deforms and shades more smoothly
+# (its skin weights blend across the new vertices), keeping its shape. Some parts stay as they were:
+# the hands and feet (small at the game's zoom), the forearms (which fold tight in his guard, #100),
+# and the thighs (where the jeans' snug fit, #67, was made for the low-poly body). Its original
+# vertices stay put; the new ones are drawn a few millimetres in along the faces they lie on, so the
+# clothes fitted to the low-poly body still cover them where a garment's flat faces cut across a body
+# face.
+BODY_INSET = 0.004
+UNCHANGED = ("hand_", "foot_", "ball_", "thumb_", "index_", "middle_", "ring_", "pinky_", "thigh_", "lowerarm_")
+original = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+group_names = {g.index: g.name for g in body.vertex_groups}
+
+
+def left_as_it_was(vertex):
+    if not vertex.groups:
+        return False
+    strongest = max(vertex.groups, key=lambda g: g.weight)
+    return group_names[strongest.group].startswith(UNCHANGED)
+
+
+mesh = body.data
+skip = {v.index for v in mesh.vertices if left_as_it_was(v)}
+bm = bmesh.new()
+bm.from_mesh(mesh)
+bm.verts.ensure_lookup_table()
+faces = [f for f in bm.faces if not any(v.index in skip for v in f.verts)]
+edges = list({e for f in faces for e in f.edges})
+kept = len(bm.verts)
+bmesh.ops.subdivide_edges(bm, edges=edges, cuts=1, use_grid_fill=True)
+bm.verts.ensure_lookup_table()
+for v in bm.verts[kept:]:
+    _, face_normal, _, _ = original.find_nearest(v.co)
+    if face_normal is not None:
+        v.co -= face_normal * BODY_INSET
+bm.to_mesh(mesh)
+bm.free()
+mesh.update()
+
+# The bake source for his skin's normal map: MakeHuman's full-resolution body (as MPFB shapes it, helpers
+# hidden), subdivided, with fine pores and creases pushed into it.
+depsgraph = bpy.context.evaluated_depsgraph_get()
+detail = bpy.data.objects.new("skin_detail", bpy.data.meshes.new_from_object(basemesh.evaluated_get(depsgraph)))
+bpy.context.scene.collection.objects.link(detail)
+detail.matrix_world = basemesh.matrix_world
+detail.modifiers.new("Smooth", "SUBSURF").levels = 1
+for name, size, strength in (("pores", 0.0025, 0.0012), ("creases", 0.02, 0.0025)):
+    texture = bpy.data.textures.new(f"skin_{name}", "CLOUDS")
+    texture.noise_scale = size
+    displace = detail.modifiers.new(name, "DISPLACE")
+    displace.texture = texture
+    displace.texture_coords = "OBJECT"
+    displace.strength = strength
+kit.apply_modifiers(detail)
+bpy.data.objects.remove(basemesh)  # the full-resolution mesh: only its body (and the bake) is shipped
 for obj, name in ((eyes, "eyes"), (brows, "eyebrows"), (lashes, "eyelashes"), (hair, "hair")):
     obj.name = obj.data.name = name
 bpy.context.view_layer.update()
@@ -44,7 +99,57 @@ HEIGHT = human.height((body, hair))
 
 # --- Materials: plain textures that export cleanly ------------------------------------------------
 
-skin = human.textured("skin", human.load("skins/young_caucasian_male/young_lightskinned_male_diffuse.png"), roughness=0.55)
+# His skin's detail maps (#116), baked with Cycles onto the body's own UVs: a normal map from the detailed
+# body above, and a roughness map (oilier and drier patches) from a procedural pattern.
+SKIN_MAP_SIZE = 1024
+scene = bpy.context.scene
+skin_normal = bpy.data.images.new("skin_normal", SKIN_MAP_SIZE, SKIN_MAP_SIZE, alpha=False)
+skin_rough = bpy.data.images.new("skin_roughness", SKIN_MAP_SIZE, SKIN_MAP_SIZE, alpha=False)
+for img in (skin_normal, skin_rough):
+    img.colorspace_settings.name = "Non-Color"
+bake = bpy.data.materials.new("skin_bake")
+nodes, links = bake.node_tree.nodes, bake.node_tree.links
+for node in list(nodes):
+    nodes.remove(node)
+target = nodes.new("ShaderNodeTexImage")
+nodes.active = target
+coords = nodes.new("ShaderNodeTexCoord")
+patches = nodes.new("ShaderNodeTexNoise")
+patches.inputs["Scale"].default_value = 14.0
+patches.inputs["Detail"].default_value = 4.0
+links.new(coords.outputs["Object"], patches.inputs["Vector"])
+spread = nodes.new("ShaderNodeMapRange")
+spread.inputs["From Min"].default_value = 0.35
+spread.inputs["From Max"].default_value = 0.65
+spread.inputs["To Min"].default_value = 0.35
+spread.inputs["To Max"].default_value = 0.75
+links.new(patches.outputs["Fac"], spread.inputs["Value"])
+emit = nodes.new("ShaderNodeEmission")
+links.new(spread.outputs["Result"], emit.inputs["Color"])
+links.new(emit.outputs["Emission"], nodes.new("ShaderNodeOutputMaterial").inputs["Surface"])
+human.use(body, bake)
+scene.render.engine = "CYCLES"
+scene.cycles.samples = 4
+scene.cycles.device = "CPU"
+scene.render.bake.margin = 8
+for obj in scene.objects:
+    obj.select_set(obj in (body, detail))
+bpy.context.view_layer.objects.active = body
+target.image = skin_normal
+bpy.ops.object.bake(type="NORMAL", use_selected_to_active=True, cage_extrusion=0.02, max_ray_distance=0.05, normal_space="TANGENT")
+detail.select_set(False)
+target.image = skin_rough
+bpy.ops.object.bake(type="EMIT")
+bpy.data.objects.remove(detail)
+scene.render.engine = "BLENDER_WORKBENCH"
+for img in (skin_normal, skin_rough):
+    img.pack()
+
+skin = human.textured("skin", human.load("skins/young_caucasian_male/young_lightskinned_male_diffuse.png"), roughness=0.55,
+                      normal_image=skin_normal)
+rough_tex = skin.node_tree.nodes.new("ShaderNodeTexImage")
+rough_tex.image = skin_rough
+skin.node_tree.links.new(rough_tex.outputs["Color"], skin.node_tree.nodes["Principled BSDF"].inputs["Roughness"])
 briefs = kit.material("underwear_briefs", (0.03, 0.03, 0.035), roughness=0.75)
 waistband = kit.material("underwear_waistband", (0.16, 0.16, 0.18), roughness=0.65)
 human.use(body, skin, briefs, waistband)
