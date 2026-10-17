@@ -19,6 +19,7 @@ import os
 import pathlib
 import sys
 
+import bmesh
 import bpy
 from mathutils import Matrix, Quaternion, Vector
 
@@ -93,6 +94,16 @@ def follow_nearest(part, segments):
         groups[min(segments, key=gap)[0]].add([v.index], 1.0, "REPLACE")
 
 
+def hollow(part, centres, radius):
+    """Deletes `part`'s vertices within `radius` of any of `centres` (where another part covers it)."""
+    bm = bmesh.new()
+    bm.from_mesh(part.data)
+    gone = [v for v in bm.verts if any((v.co - Vector(c)).length < radius for c in centres)]
+    bmesh.ops.delete(bm, geom=gone, context="VERTS")
+    bm.to_mesh(part.data)
+    bm.free()
+
+
 def mirrored(p, side):
     return (p[0] * side, p[1], p[2])
 
@@ -115,7 +126,8 @@ bones = [("root", (0, 0.02, 0.3), (0, 0.02, 0.4), None), ("spine", (0, 0.03, 0.4
 # The Body Tool mirrors what it grows across X, so each pair of legs (and the mandibles) is one curve
 # on its left; every vertex then follows the nearest bone on whichever side it is.
 for leg, (hip, knee, foot) in LEGS.items():
-    part = body_tool(leg, [(hip, 0.32), (knee, 0.24), (foot, 0.2)], handles="VECTOR")
+    part = body_tool(leg, [(hip, 0.27), (knee, 0.21), (foot, 0.2)], handles="VECTOR")
+    hollow(part, [mirrored(knee, 1), mirrored(knee, -1)], 0.05)  # the knee bulge (below) takes its place there
     segments = []
     for side, s in ((1, "l"), (-1, "r")):
         h, k, f = mirrored(hip, side), mirrored(knee, side), mirrored(foot, side)
@@ -124,6 +136,10 @@ for leg, (hip, knee, foot) in LEGS.items():
         bones += [(upper, h, k, "root"), (lower, k, f, upper), (end, f, (f[0], f[1], f[2] - 0.03), lower)]
     follow_nearest(part, segments)
     parts.append(kit.decimate(part, 0.6))
+    # A knobbly knee: a swollen joint of chitin around where the two segments meet.
+    knob = body_tool(f"{leg}_knee", [(tuple(k + (h - k) * 0.22 for k, h in zip(knee, hip)), 0.32), (knee, 0.4), (tuple(k + (f - k) * 0.12 for k, f in zip(knee, foot)), 0.32)])
+    follow_nearest(knob, segments)
+    parts.append(kit.decimate(knob, 0.5))
 mandibles = body_tool("mandibles", [(MANDIBLE[0], 0.38), (MANDIBLE[1], 0.3), (MANDIBLE[2], 0.2)])
 segments = []
 for side, s in ((1, "l"), (-1, "r")):
@@ -158,6 +174,161 @@ rig = kit.armature("monster", bones)
 model = kit.bind(rig, parts, "monster")
 for poly in model.data.polygons:
     poly.use_smooth = True
+
+
+# --- Surface: textures baked onto the game mesh ----------------------------------------------------
+# Its hide gets three maps, baked with Cycles onto UVs unwrapped here: a normal map from a high-detail
+# copy (chitin plates and fine pores displaced into it), and colour and roughness from a procedural
+# shader (a dark back, a paler belly, mottling; glossy plates and matte crevices between them).
+
+TEXTURE_SIZE = 1024
+
+
+def select_only(*objects, active):
+    for obj in scene.objects:
+        obj.select_set(obj in objects)
+    bpy.context.view_layer.objects.active = active
+
+
+def image(name, colour=True):
+    img = bpy.data.images.new(f"monster_{name}", TEXTURE_SIZE, TEXTURE_SIZE, alpha=False)
+    img.colorspace_settings.name = "sRGB" if colour else "Non-Color"
+    return img
+
+
+def shader_nodes(material):
+    """The procedural hide, in `material`'s node tree: returns (colour socket, roughness socket)."""
+    nodes, links = material.node_tree.nodes, material.node_tree.links
+    coords = nodes.new("ShaderNodeTexCoord")
+    geometry = nodes.new("ShaderNodeNewGeometry")
+    plates = nodes.new("ShaderNodeTexVoronoi")
+    plates.feature = "DISTANCE_TO_EDGE"
+    plates.inputs["Scale"].default_value = 22.0
+    links.new(coords.outputs["Object"], plates.inputs["Vector"])
+    mottle = nodes.new("ShaderNodeTexNoise")
+    mottle.inputs["Scale"].default_value = 9.0
+    mottle.inputs["Detail"].default_value = 6.0
+    links.new(coords.outputs["Object"], mottle.inputs["Vector"])
+    # How much a point faces down: 0 on its back and sides, 1 underneath.
+    normal_z = nodes.new("ShaderNodeSeparateXYZ")
+    links.new(geometry.outputs["Normal"], normal_z.inputs["Vector"])
+    belly = nodes.new("ShaderNodeMapRange")
+    belly.inputs["From Min"].default_value = -0.1
+    belly.inputs["From Max"].default_value = -0.75
+    links.new(normal_z.outputs["Z"], belly.inputs["Value"])
+    hide = nodes.new("ShaderNodeMix")
+    hide.data_type = "RGBA"
+    hide.inputs["A"].default_value = (0.022, 0.028, 0.02, 1)  # its back: near-black green
+    hide.inputs["B"].default_value = (0.11, 0.095, 0.07, 1)  # its belly: pale, sickly
+    links.new(belly.outputs["Result"], hide.inputs["Factor"])
+    # Mottling and dark crevices between the plates.
+    shade = nodes.new("ShaderNodeMapRange")
+    shade.inputs["To Min"].default_value = 0.55
+    shade.inputs["To Max"].default_value = 1.45
+    links.new(mottle.outputs["Fac"], shade.inputs["Value"])
+    crevice = nodes.new("ShaderNodeMapRange")
+    crevice.inputs["From Max"].default_value = 0.08
+    crevice.inputs["To Min"].default_value = 0.35
+    links.new(plates.outputs["Distance"], crevice.inputs["Value"])
+    tone = nodes.new("ShaderNodeMath")
+    tone.operation = "MULTIPLY"
+    links.new(shade.outputs["Result"], tone.inputs[0])
+    links.new(crevice.outputs["Result"], tone.inputs[1])
+    colour = nodes.new("ShaderNodeMix")
+    colour.data_type = "RGBA"
+    colour.blend_type = "MULTIPLY"
+    colour.inputs["Factor"].default_value = 1.0
+    links.new(hide.outputs["Result"], colour.inputs["A"])
+    links.new(tone.outputs["Value"], colour.inputs["B"])
+    # Glossy, wet plates; matte crevices and belly.
+    rough = nodes.new("ShaderNodeMapRange")
+    rough.inputs["From Max"].default_value = 0.08
+    rough.inputs["To Min"].default_value = 0.85
+    rough.inputs["To Max"].default_value = 0.2
+    links.new(plates.outputs["Distance"], rough.inputs["Value"])
+    roughness = nodes.new("ShaderNodeMath")
+    roughness.operation = "MAXIMUM"
+    links.new(rough.outputs["Result"], roughness.inputs[0])
+    belly_rough = nodes.new("ShaderNodeMath")
+    belly_rough.operation = "MULTIPLY"
+    belly_rough.inputs[1].default_value = 0.75
+    links.new(belly.outputs["Result"], belly_rough.inputs[0])
+    links.new(belly_rough.outputs["Value"], roughness.inputs[1])
+    return colour.outputs["Result"], roughness.outputs["Value"]
+
+
+# UVs for the game mesh.
+select_only(model, active=model)
+bpy.ops.object.mode_set(mode="EDIT")
+bpy.ops.mesh.select_all(action="SELECT")
+bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.01)
+bpy.ops.object.mode_set(mode="OBJECT")
+
+# The high-detail copy: smoothed, with chitin plates and pores pushed into it.
+detail = model.copy()
+detail.data = model.data.copy()
+detail.name = "monster_detail"
+scene.collection.objects.link(detail)
+detail.parent = None
+detail.matrix_world = model.matrix_world
+for mod in list(detail.modifiers):
+    detail.modifiers.remove(mod)
+detail.modifiers.new("Smooth", "SUBSURF").levels = 2
+for name, kind, size, strength in (("plates", "VORONOI", 0.045, 0.012), ("pores", "CLOUDS", 0.008, 0.004)):
+    texture = bpy.data.textures.new(f"monster_{name}", kind)
+    texture.noise_scale = size
+    displace = detail.modifiers.new(name, "DISPLACE")
+    displace.texture = texture
+    displace.texture_coords = "OBJECT"
+    displace.strength = strength
+kit.apply_modifiers(detail)
+
+albedo, roughness_map, normal_map = image("albedo"), image("roughness", colour=False), image("normal", colour=False)
+scene.render.engine = "CYCLES"
+scene.cycles.samples = 4
+scene.cycles.device = "CPU"
+scene.render.bake.margin = 8
+bake_material = bpy.data.materials.new("monster_skin_bake")
+nodes, links = bake_material.node_tree.nodes, bake_material.node_tree.links
+for node in list(nodes):
+    nodes.remove(node)
+colour_out, rough_out = shader_nodes(bake_material)
+emit = nodes.new("ShaderNodeEmission")
+output = nodes.new("ShaderNodeOutputMaterial")
+links.new(emit.outputs["Emission"], output.inputs["Surface"])
+target = nodes.new("ShaderNodeTexImage")
+nodes.active = target
+saved = list(model.data.materials)
+for i in range(len(saved)):  # every face bakes into the one set of maps (slots swapped in place)
+    model.data.materials[i] = bake_material
+for img, source in ((albedo, colour_out), (roughness_map, rough_out)):
+    links.new(source, emit.inputs["Color"])
+    target.image = img
+    select_only(model, active=model)
+    bpy.ops.object.bake(type="EMIT")
+target.image = normal_map
+select_only(model, detail, active=model)
+bpy.ops.object.bake(type="NORMAL", use_selected_to_active=True, cage_extrusion=0.03, normal_space="TANGENT")
+bpy.data.objects.remove(detail)
+for i, material in enumerate(saved):
+    model.data.materials[i] = material
+for img in (albedo, roughness_map, normal_map):
+    img.pack()
+
+# The skin's final material: the three maps.
+nodes, links = skin.node_tree.nodes, skin.node_tree.links
+bsdf = nodes["Principled BSDF"]
+for img, socket in ((albedo, "Base Color"), (roughness_map, "Roughness")):
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    links.new(tex.outputs["Color"], bsdf.inputs[socket])
+normal_tex = nodes.new("ShaderNodeTexImage")
+normal_tex.image = normal_map
+normal_node = nodes.new("ShaderNodeNormalMap")
+links.new(normal_tex.outputs["Color"], normal_node.inputs["Color"])
+links.new(normal_node.outputs["Normal"], bsdf.inputs["Normal"])
+bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
+scene.render.engine = "BLENDER_WORKBENCH"
 bpy.ops.outliner.orphans_purge(do_recursive=True)
 
 # --- Animation -------------------------------------------------------------------------------------
@@ -276,4 +447,4 @@ animate("hit", {0.0: {}, 0.17: merged(body(forward=-0.1, up=0.02), jaws(12)), 0.
 
 for track in list(rig.animation_data.nla_tracks):
     rig.animation_data.nla_tracks.remove(track)
-kit.export("monster", "characters", animation_mode="ACTIONS")
+kit.export("monster", "characters", preview_colors="TEXTURE", animation_mode="ACTIONS")
