@@ -11,6 +11,8 @@ const KNIFE := preload("res://assets/models/props/knife.glb")
 ## How far the knife's blade tips forward from the line of his knuckles (1 = 45 degrees), so it points
 ## out past his fist at his opponent from his outstretched knife hand (#100).
 const KNIFE_TILT := 1.5
+## How much light his skin scatters under its surface (#116): soft, not waxy.
+const SKIN_SCATTER := 0.3
 
 ## Walking speed in metres per second.
 @export var speed := 2.5
@@ -33,6 +35,7 @@ func _ready() -> void:
 	var players := find_children("*", "AnimationPlayer", true, false)
 	_animation = players[0] if not players.is_empty() else null
 	_knife = _attach_knife()
+	_soften_skin()
 
 
 ## Puts the knife (hidden) in his right hand: on the `hand_r` bone, its grip in the middle of his fist
@@ -142,3 +145,14 @@ func _play(clip: StringName) -> void:
 		return
 	if _animation.current_animation != clip:
 		_animation.play(clip)
+
+
+## Gives his skin subsurface scattering, so light glows softly through it rather than sitting on it like
+## paint (#116). glTF can't carry it, so it's set here, on his `skin*` materials.
+func _soften_skin() -> void:
+	for mi: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
+		for s in mi.mesh.get_surface_count():
+			var material := mi.get_active_material(s) as BaseMaterial3D
+			if material != null and material.resource_name.begins_with("skin"):
+				material.subsurf_scatter_enabled = true
+				material.subsurf_scatter_strength = SKIN_SCATTER
