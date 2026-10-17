@@ -1,16 +1,17 @@
 extends GutTest
 # Attacks (ticket #48): on the detective's turn, clicking the cultist within reach (1.5 m between
-# their bodies' edges) spends his action on an attack, resolved like a tabletop RPG: d20 + attack
-# bonus against Armour Class, damage dice on a hit, a natural 20 a critical hit (double dice) and a
-# natural 1 always a miss.
+# their bodies' edges) spends his action on an attack. Since #120 it's resolved with a pool of d6, like
+# Vampire: The Masquerade: each die of 4+ is a success, a pair of 6s counts as four (a critical), it
+# hits if the successes reach the target's defence (no successes at all is a total failure), and the
+# damage is the weapon's damage plus the successes beyond the defence, at least 1. (Changed from the
+# d20 rules by #120, as its ticket says.)
 #
 # Interface these tests choose, on the main scene's `CombatController` (#45-#47):
 # - `attack(attacker, target)` resolves one attack with the controller's seeded dice, spends the
 #   attacker's action when it's their turn, emits `attack_resolved(result)` and returns `result`: a
-#   Dictionary with `attacker`, `target`, `roll` (the d20), `total`, `hit`, `critical`,
-#   `damage_rolls` (each damage die) and `damage`.
-# - Stats are node metadata, read through `attack_bonus(c)` and `armour_class(c)`. Damage dice are
-#   `damage_dice` (how many), `damage_die` (sides) and `damage_bonus`.
+#   Dictionary with `attacker`, `target`, `dice` (each d6 rolled), `successes`, `defence`, `hit`,
+#   `critical` and `damage`.
+# - Stats are node metadata, read through `attack_pool(c)`, `defence(c)` and `weapon_damage(c)`.
 # - Clicking the cultist (anywhere on it, in the scene's viewport) attacks it when allowed. A click
 #   on the cultist never walks him there.
 
@@ -121,25 +122,39 @@ func _click_on(node: Node3D) -> void:
 	await wait_physics_frames(30)
 
 
-# The rules the result must follow, for `attacker` hitting `target` with `ac` and their stats.
-func _assert_follows_rules(result: Dictionary, bonus: int, ac: int, sides: int, dice: int, damage_bonus: int, who: String) -> void:
-	var roll: int = result.get("roll", 0)
-	assert_between(roll, 1, 20, "%s: the attack roll is a d20" % who)
-	assert_eq(result.get("total"), roll + bonus, "%s: the total is the d20 + %d" % [who, bonus])
-	var should_hit := roll == 20 or (roll != 1 and roll + bonus >= ac)
-	assert_eq(result.get("hit"), should_hit, "%s: roll %d (total %d) against AC %d %s" % [who, roll, roll + bonus, ac, "hits" if should_hit else "misses"])
-	assert_eq(result.get("critical"), roll == 20, "%s: only a natural 20 is a critical hit" % who)
-	var rolls: Array = result.get("damage_rolls", [])
+# The successes in `dice`: one per 4+, and each pair of 6s counts as four rather than two.
+func _successes(dice: Array) -> int:
+	var successes := 0
+	var sixes := 0
+	for die: int in dice:
+		if die >= 4:
+			successes += 1
+		if die == 6:
+			sixes += 1
+	return successes + (sixes / 2) * 2
+
+
+# The rules the result must follow, for an attacker with `pool` dice and `weapon` damage against a
+# target with `defence`. (Rewritten for the d6 pool by #120.)
+func _assert_follows_rules(result: Dictionary, pool: int, defence: int, weapon: int, who: String) -> void:
+	var dice: Array = result.get("dice", [])
+	assert_eq(dice.size(), pool, "%s: rolls %d d6" % [who, pool])
+	var sixes := 0
+	for die: int in dice:
+		assert_between(die, 1, 6, "%s: each die is a d6" % who)
+		if die == 6:
+			sixes += 1
+	var successes := _successes(dice)
+	assert_eq(result.get("successes"), successes, "%s: %s is %d successes" % [who, dice, successes])
+	assert_eq(result.get("defence"), defence, "%s: against defence %d" % [who, defence])
+	var should_hit := successes > 0 and successes >= defence
+	assert_eq(result.get("hit"), should_hit, "%s: %d successes against defence %d %s" % [who, successes, defence, "hits" if should_hit else "misses"])
+	assert_eq(result.get("critical"), should_hit and sixes >= 2, "%s: a hit with a pair of 6s is a critical" % who)
 	if not should_hit:
 		assert_eq(result.get("damage"), 0, "%s: a miss deals no damage" % who)
 		return
-	var count := dice * 2 if roll == 20 else dice
-	assert_eq(rolls.size(), count, "%s: %d damage dice (%s)" % [who, count, "critical" if roll == 20 else "normal"])
-	var sum := 0
-	for die: int in rolls:
-		assert_between(die, 1, sides, "%s: each damage die is a d%d" % [who, sides])
-		sum += die
-	assert_eq(result.get("damage"), sum + damage_bonus, "%s: damage is the dice + %d" % [who, damage_bonus])
+	var damage := maxi(1, weapon + successes - defence)
+	assert_eq(result.get("damage"), damage, "%s: damage is %d + %d beyond the defence (at least 1)" % [who, weapon, successes - defence])
 
 
 # Given it's the detective's turn, he has his action, and the cultist is within his reach (1.5 m,
@@ -161,16 +176,17 @@ func test_clicking_the_cultist_in_reach_attacks_it():
 	var result: Dictionary = _attacks[0]
 	assert_eq(result.get("attacker"), body, "the detective attacks")
 	assert_eq(result.get("target"), cultist, "the cultist is attacked")
-	for key in ["roll", "total", "hit"]:
+	for key in ["dice", "successes", "hit"]:  # (the d6 pool's, since #120)
 		assert_true(result.has(key), "the result reports %s" % key)
 	assert_eq(controller.actions_left, 0, "his action is spent")
 	assert_almost_eq(controller.movement_left, movement_before, 0.001, "attacking doesn't spend movement")
 	assert_lt(Vector2(body.global_position.x - START.x, body.global_position.z - START.z).length(), 0.01, "clicking the cultist doesn't walk him")
 
 
-# Given an attack, when it is rolled, then the attack total is a d20 plus the attacker's attack bonus
-# (detective +4, cultist +3). It hits if the total is at least the target's Armour Class (detective
-# 13, cultist 11), except that a natural 1 always misses and a natural 20 always hits.
+# Given an attack, when it is rolled, then the attacker rolls their attack pool of d6 (detective 5,
+# cultist 4), counting a success for each 4+ and four for each pair of 6s. It hits if the successes
+# reach the target's defence (detective 2, cultist 1); no successes at all is a total failure.
+# (Rewritten for the d6 pool by #120, as its ticket says.)
 func test_attack_rolls_follow_the_rules():
 	var fight := await _combat()
 	if fight.is_empty():
@@ -178,28 +194,33 @@ func test_attack_rolls_follow_the_rules():
 	var controller: Node = fight[1]
 	var body: CharacterBody3D = fight[2]
 	var cultist: Node3D = fight[3]
-	assert_eq(controller.attack_bonus(body), 4, "the detective's attack bonus is +4")
-	assert_eq(controller.attack_bonus(cultist), 3, "the cultist's attack bonus is +3")
-	assert_eq(controller.armour_class(body), 13, "the detective's AC is 13")
-	assert_eq(controller.armour_class(cultist), 11, "the cultist's AC is 11")
-	var naturals := {}
+	assert_eq(controller.attack_pool(body), 5, "the detective's attack pool is 5 dice")
+	assert_eq(controller.attack_pool(cultist), 4, "the cultist's attack pool is 4 dice")
+	assert_eq(controller.defence(body), 2, "the detective's defence is 2")
+	assert_eq(controller.defence(cultist), 1, "the cultist's defence is 1")
 	var hits := {true: 0, false: 0}
+	var criticals := 0
+	var total_failures := 0
 	for i in 400:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 4, 11, 4, 1, 2, "detective")
-		naturals[result.get("roll")] = true
+		_assert_follows_rules(result, 5, 1, 1, "detective")
 		hits[result.get("hit")] += 1
+		if result.get("critical"):
+			criticals += 1
 		result = controller.attack(cultist, body)
-		_assert_follows_rules(result, 3, 13, 6, 1, 1, "cultist")
-	assert_true(naturals.has(1) and naturals.has(20), "in 400 attacks both a natural 1 and a natural 20 come up")
+		_assert_follows_rules(result, 4, 2, 1, "cultist")
+		if result.get("successes") == 0:
+			total_failures += 1
 	assert_gt(hits[true], 0, "some attacks hit")
 	assert_gt(hits[false], 0, "some attacks miss")
+	assert_gt(criticals, 0, "in 400 attacks some are criticals")
+	assert_gt(total_failures, 0, "in 400 attacks some are total failures")
 
 
-# Given a hit, when damage is rolled, then it's the attacker's damage dice plus their bonus
-# (detective 1d4+2 with his knife, #92; cultist 1d6+1). A natural 20 doubles the number of dice
-# (detective 2d4+2), and a miss deals no damage.
-# (Changed from 1d8+2 with the owner's go-ahead on #92.)
+# Given a hit, when damage is worked out, then it's the attacker's weapon damage (detective's knife 1,
+# cultist's mandibles 1) plus the successes beyond the defence, at least 1; a critical's extra
+# successes make it hit harder than any normal hit, and a miss deals no damage.
+# (Rewritten for the d6 pool by #120, as its ticket says.)
 func test_damage_dice_on_a_hit():
 	var fight := await _combat()
 	if fight.is_empty():
@@ -207,25 +228,27 @@ func test_damage_dice_on_a_hit():
 	var controller: Node = fight[1]
 	var body: CharacterBody3D = fight[2]
 	var cultist: Node3D = fight[3]
+	assert_eq(controller.weapon_damage(body), 1, "the detective's knife does 1")
+	assert_eq(controller.weapon_damage(cultist), 1, "the cultist's mandibles do 1")
 	var normal := {}  # damage dealt on ordinary hits
 	var critical_max := 0
 	var cultist_damage := {}
 	for i in 600:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 4, 11, 4, 1, 2, "detective")
+		_assert_follows_rules(result, 5, 1, 1, "detective")
 		if result.get("hit") and not result.get("critical"):
 			normal[result.get("damage")] = true
 		elif result.get("critical"):
 			critical_max = maxi(critical_max, result.get("damage"))
 		result = controller.attack(cultist, body)
-		_assert_follows_rules(result, 3, 13, 6, 1, 1, "cultist")
+		_assert_follows_rules(result, 4, 2, 1, "cultist")
 		if result.get("hit") and not result.get("critical"):
 			cultist_damage[result.get("damage")] = true
-	assert_eq(normal.keys().min(), 3, "the detective's lowest normal hit is 1 + 2")
-	assert_eq(normal.keys().max(), 6, "the detective's highest normal hit is 4 + 2 (his knife, #92)")
-	assert_gt(critical_max, 6, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
-	assert_eq(cultist_damage.keys().min(), 2, "the cultist's lowest hit is 1 + 1")
-	assert_eq(cultist_damage.keys().max(), 7, "the cultist's highest hit is 6 + 1")
+	assert_eq(normal.keys().min(), 1, "the detective's lowest normal hit is 1")
+	assert_eq(normal.keys().max(), 5, "the detective's highest normal hit is 1 + 4 beyond the cultist's defence")
+	assert_gt(critical_max, 5, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
+	assert_eq(cultist_damage.keys().min(), 1, "the cultist's lowest hit is 1")
+	assert_eq(cultist_damage.keys().max(), 3, "the cultist's highest normal hit is 1 + 2 beyond the detective's defence")
 
 
 # Given the cultist is out of reach, or his action is already spent, or it isn't his turn, when the

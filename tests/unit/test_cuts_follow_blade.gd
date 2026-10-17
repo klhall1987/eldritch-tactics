@@ -78,13 +78,13 @@ func _tip(knife: Node3D) -> Vector3:
 	return tip
 
 
-# He attacks with a normal hit (peeking at the next d20), recording the knife's tip each physics frame
-# until the cut opens. Returns {"wound", "path" [[clip time, tip]...], "attack_length"} or {}.
+# He attacks with a normal hit (peeking at the next dice pool), recording the knife's tip each physics
+# frame until the cut opens. Returns {"wound", "path" [[clip time, tip]...], "attack_length"} or {}.
 func _slash(controller: Node, body: CharacterBody3D, enemy: Node3D) -> Dictionary:
 	for i in 1000:
 		var state: int = controller.rng.state
-		var roll: int = controller.roll_d20()
-		if roll >= 7 and roll < 20:
+		var dice: Array = controller.roll_pool(5)  # (a d20 until #120)
+		if dice.any(func(d: int) -> bool: return d >= 4) and dice.count(6) < 2:  # a hit, not a critical
 			controller.rng.state = state
 			break
 	var knife := body.find_child("Knife", true, false) as Node3D

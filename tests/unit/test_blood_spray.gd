@@ -10,8 +10,8 @@ extends GutTest
 # - "Dark red": red at least 0.25, green and blue at most 0.15. "Mostly away from the attacker": the
 #   spray's direction, flattened, points within 60 degrees of straight away from him.
 # - The new wound is the newest node in the `wounds` group (#93).
-# - The tests pick a normal hit or a critical by peeking at the controller's next d20 (saving and
-#   restoring `rng.state`).
+# - The tests pick a normal hit, a critical or a miss by peeking at the controller's next dice pool
+#   (`roll_pool()`, saving and restoring `rng.state`; a d20 until #120).
 
 var _window: SubViewport
 
@@ -63,18 +63,25 @@ func _sprays() -> Array:
 	return get_tree().get_nodes_in_group("blood_sprays")
 
 
-# Advances the dice until the next d20 is one `wanted` accepts (leaving it to be rolled next).
-func _next_roll(controller: Node, wanted: Callable) -> void:
+# Advances the dice until the next pool of `pool` d6 is one `wanted` accepts (leaving it to be rolled
+# next). (Peeked at the d20 until #120 moved attacks to the d6 pool, as its ticket says.)
+func _next_roll(controller: Node, wanted: Callable, pool := 5) -> void:
 	for i in 1000:
 		var state: int = controller.rng.state
-		var roll: int = controller.roll_d20()
-		if wanted.call(roll):
+		var dice: Array = controller.roll_pool(pool)
+		if wanted.call(dice):
 			controller.rng.state = state
 			return
-	fail_test("no wanted d20 came up in 1000 rolls")
+	fail_test("no wanted pool came up in 1000 rolls")
 
 
-# The player character attacks the cultist with the next d20 one `wanted` accepts, then waits for the
+# The successes in `dice` (#120): one per 4+, four per pair of 6s.
+func _successes(dice: Array) -> int:
+	var sixes := dice.count(6)
+	return dice.filter(func(d: int) -> bool: return d >= 4).size() + (sixes / 2) * 2
+
+
+# The player character attacks the cultist with the next pool `wanted` accepts, then waits for the
 # slash to land and a spray to start. Returns [result, spray or null].
 func _slash(controller: Node, body: Node3D, cultist: Node3D, wanted: Callable) -> Array:
 	_next_roll(controller, wanted)
@@ -90,12 +97,12 @@ func _slash(controller: Node, body: Node3D, cultist: Node3D, wanted: Callable) -
 	return [result, spray]
 
 
-func _normal_hit(roll: int) -> bool:
-	return roll >= 7 and roll < 20  # +4 against the cultist's AC 11
+func _normal_hit(dice: Array) -> bool:
+	return _successes(dice) >= 1 and dice.count(6) < 2  # a hit against the cultist's defence 1, no critical
 
 
-func _critical(roll: int) -> bool:
-	return roll == 20
+func _critical(dice: Array) -> bool:
+	return dice.count(6) >= 2  # a pair of 6s: a critical hit
 
 
 func _away(spray: CPUParticles3D, attacker: Node3D, target: Node3D) -> float:
@@ -184,15 +191,15 @@ func test_misses_and_punches_spray_nothing():
 	var body: CharacterBody3D = fight[2]
 	var cultist: Node3D = fight[3]
 	for i in 3:
-		_next_roll(controller, func(roll: int) -> bool: return roll < 7)
+		_next_roll(controller, func(dice: Array) -> bool: return _successes(dice) == 0)
 		controller.actions_left = 1
 		var result: Dictionary = controller.attack(body, cultist)
 		assert_false(result.hit, "the attack misses")
 		await wait_seconds(1.3)
 		assert_eq(_sprays().size(), 0, "a miss sprays no blood")
-	body.set_meta("armour_class", 0)  # the cultist's punches land
+	body.set_meta("defence", 0)  # the cultist's attacks land unless they roll no successes (#120)
 	for i in 3:
-		_next_roll(controller, func(roll: int) -> bool: return roll > 1)
+		_next_roll(controller, func(dice: Array) -> bool: return _successes(dice) > 0, 4)
 		var result: Dictionary = controller.attack(cultist, body)
 		controller.hit_points[body] = 20
 		assert_true(result.hit, "the cultist's punch lands")
