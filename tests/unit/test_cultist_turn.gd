@@ -207,8 +207,8 @@ func test_cultist_walks_towards_him_around_props_and_stops_at_reach():
 
 
 # Given the cultist ends its movement within reach (1.5 m between their bodies' edges), when its
-# turn continues, then it attacks the detective with the attack rules from #48 (d20 +3 against
-# AC 13, 1d6+1 damage).
+# turn continues, then it attacks the detective with the attack rules from #48 (since #120, a pool of
+# 4 d6 against his defence 2, 1 damage plus the successes beyond it).
 func test_cultist_attacks_when_in_reach():
 	# It walks up first (about 3 m of clear floor), then attacks.
 	var fight := await _combat(CLEAR, CLEAR + Vector3(3.0, 0, 0))
@@ -226,19 +226,22 @@ func test_cultist_attacks_when_in_reach():
 	var result: Dictionary = _attacks[0]
 	assert_eq(result.get("attacker"), cultist, "the cultist attacks")
 	assert_eq(result.get("target"), body, "the detective is attacked")
-	var roll: int = result.get("roll", 0)
-	assert_between(roll, 1, 20, "a d20 attack roll")
-	assert_eq(result.get("total"), roll + 3, "d20 + 3")
-	var should_hit := roll == 20 or (roll != 1 and roll + 3 >= 13)
-	assert_eq(result.get("hit"), should_hit, "against AC 13")
+	# (The d20 check below was rewritten for the d6 pool by #120, as its ticket says: 4 dice against his
+	# defence 2, its mandibles' 1 damage plus the successes beyond his defence.)
+	var dice: Array = result.get("dice", [])
+	assert_eq(dice.size(), 4, "a pool of 4 d6")
+	var successes := 0
+	var sixes := 0
+	for die: int in dice:
+		if die >= 4:
+			successes += 1
+		if die == 6:
+			sixes += 1
+	successes += (sixes / 2) * 2
+	var should_hit := successes > 0 and successes >= 2
+	assert_eq(result.get("hit"), should_hit, "%d successes against his defence 2" % successes)
 	if should_hit:
-		var dice := 2 if roll == 20 else 1
-		var rolls: Array = result.get("damage_rolls", [])
-		assert_eq(rolls.size(), dice, "1d6 (doubled on a 20)")
-		var sum := 0
-		for die: int in rolls:
-			sum += die
-		assert_eq(result.get("damage"), sum + 1, "1d6 + 1 damage")
+		assert_eq(result.get("damage"), maxi(1, 1 + successes - 2), "1 + the successes beyond his defence")
 		assert_eq(controller.hit_points.get(body), 20 - int(result.get("damage")), "the hit lands on his hit points")
 
 	# Already within reach: it attacks without walking.

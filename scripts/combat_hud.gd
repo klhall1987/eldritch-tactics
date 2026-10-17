@@ -71,13 +71,11 @@ func _log_initiative() -> void:
 
 func _log_attack(result: Dictionary) -> void:
 	var attacker: Node3D = result.attacker
-	var target: Node3D = result.target
-	var line := "%s attacks: d20 %d + %d = %d vs AC %d, %s" % [_name(attacker), result.roll,
-		_controller.attack_bonus(attacker), result.total, _controller.armour_class(target),
-		"hit" if result.hit else "miss"]
+	var line := "%s attacks: %d dice %s = %d successes vs defence %d, %s" % [_name(attacker), result.dice.size(),
+		str(result.dice), result.successes, result.defence,
+		("critical hit" if result.critical else "hit") if result.hit else "miss"]
 	if result.hit:
-		line += "; damage %dd%d+%d = %d" % [result.damage_rolls.size(), attacker.get_meta("damage_die", 4),
-			attacker.get_meta("damage_bonus", 0), result.damage]
+		line += "; damage %d" % result.damage
 	_log(line)
 
 
