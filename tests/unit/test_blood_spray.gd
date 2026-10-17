@@ -98,7 +98,7 @@ func _slash(controller: Node, body: Node3D, cultist: Node3D, wanted: Callable) -
 
 
 func _normal_hit(dice: Array) -> bool:
-	return _successes(dice) >= 1 and dice.count(6) < 2  # a hit against the cultist's defence 1, no critical
+	return _successes(dice) >= 2 and dice.count(6) < 2  # a hit against the cultist's defence 2 (agreed on #120), no critical
 
 
 func _critical(dice: Array) -> bool:
@@ -191,7 +191,7 @@ func test_misses_and_punches_spray_nothing():
 	var body: CharacterBody3D = fight[2]
 	var cultist: Node3D = fight[3]
 	for i in 3:
-		_next_roll(controller, func(dice: Array) -> bool: return _successes(dice) == 0)
+		_next_roll(controller, func(dice: Array) -> bool: return _successes(dice) < 2)  # short of its defence 2
 		controller.actions_left = 1
 		var result: Dictionary = controller.attack(body, cultist)
 		assert_false(result.hit, "the attack misses")

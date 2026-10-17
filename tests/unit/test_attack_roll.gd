@@ -83,7 +83,7 @@ func _combat(gap := IN_REACH_GAP, seed_value := 48) -> Array:
 	var cultist := main.find_child("Cultist", true, false) as Node3D
 	if controller == null or body == null or cultist == null:
 		return []
-	for method in ["attack", "attack_bonus", "armour_class"]:
+	for method in ["attack", "attack_pool", "defence", "weapon_damage"]:  # (d20 names until #120; agreed on #120)
 		assert_true(controller.has_method(method), "CombatController has %s()" % method)
 		if not controller.has_method(method):
 			return []
@@ -185,7 +185,8 @@ func test_clicking_the_cultist_in_reach_attacks_it():
 
 # Given an attack, when it is rolled, then the attacker rolls their attack pool of d6 (detective 5,
 # cultist 4), counting a success for each 4+ and four for each pair of 6s. It hits if the successes
-# reach the target's defence (detective 2, cultist 1); no successes at all is a total failure.
+# reach the target's defence (detective 2, cultist 2: raised from 1 as agreed on #120); no successes
+# at all is a total failure.
 # (Rewritten for the d6 pool by #120, as its ticket says.)
 func test_attack_rolls_follow_the_rules():
 	var fight := await _combat()
@@ -197,13 +198,13 @@ func test_attack_rolls_follow_the_rules():
 	assert_eq(controller.attack_pool(body), 5, "the detective's attack pool is 5 dice")
 	assert_eq(controller.attack_pool(cultist), 4, "the cultist's attack pool is 4 dice")
 	assert_eq(controller.defence(body), 2, "the detective's defence is 2")
-	assert_eq(controller.defence(cultist), 1, "the cultist's defence is 1")
+	assert_eq(controller.defence(cultist), 2, "the cultist's defence is 2")
 	var hits := {true: 0, false: 0}
 	var criticals := 0
 	var total_failures := 0
 	for i in 400:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 5, 1, 1, "detective")
+		_assert_follows_rules(result, 5, 2, 1, "detective")
 		hits[result.get("hit")] += 1
 		if result.get("critical"):
 			criticals += 1
@@ -235,7 +236,7 @@ func test_damage_dice_on_a_hit():
 	var cultist_damage := {}
 	for i in 600:
 		var result: Dictionary = controller.attack(body, cultist)
-		_assert_follows_rules(result, 5, 1, 1, "detective")
+		_assert_follows_rules(result, 5, 2, 1, "detective")
 		if result.get("hit") and not result.get("critical"):
 			normal[result.get("damage")] = true
 		elif result.get("critical"):
@@ -245,8 +246,8 @@ func test_damage_dice_on_a_hit():
 		if result.get("hit") and not result.get("critical"):
 			cultist_damage[result.get("damage")] = true
 	assert_eq(normal.keys().min(), 1, "the detective's lowest normal hit is 1")
-	assert_eq(normal.keys().max(), 5, "the detective's highest normal hit is 1 + 4 beyond the cultist's defence")
-	assert_gt(critical_max, 5, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
+	assert_eq(normal.keys().max(), 4, "the detective's highest normal hit is 1 + 3 beyond the cultist's defence")
+	assert_gt(critical_max, 4, "a critical hit can deal more than any normal hit (best %d)" % critical_max)
 	assert_eq(cultist_damage.keys().min(), 1, "the cultist's lowest hit is 1")
 	assert_eq(cultist_damage.keys().max(), 3, "the cultist's highest normal hit is 1 + 2 beyond the detective's defence")
 

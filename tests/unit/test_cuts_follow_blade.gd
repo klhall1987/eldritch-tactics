@@ -84,7 +84,7 @@ func _slash(controller: Node, body: CharacterBody3D, enemy: Node3D) -> Dictionar
 	for i in 1000:
 		var state: int = controller.rng.state
 		var dice: Array = controller.roll_pool(5)  # (a d20 until #120)
-		if dice.any(func(d: int) -> bool: return d >= 4) and dice.count(6) < 2:  # a hit, not a critical
+		if controller.count_successes(dice) >= 2 and dice.count(6) < 2:  # a hit against its defence 2 (agreed on #120), not a critical
 			controller.rng.state = state
 			break
 	var knife := body.find_child("Knife", true, false) as Node3D

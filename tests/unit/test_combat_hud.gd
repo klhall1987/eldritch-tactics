@@ -13,7 +13,7 @@ extends GutTest
 #   - `EndTurn`: a Button.
 #   - `DiceLog`: a container of Labels, one per line, newest last. An initiative line reads like
 #     "Player initiative: d20 14 + 2 = 16"; an attack line like
-#     "Player attacks: 5 dice [6, 4, 2, 6, 1] = 5 successes vs defence 1, critical hit; damage 5" (the
+#     "Player attacks: 5 dice [6, 4, 2, 6, 1] = 5 successes vs defence 2, critical hit; damage 4" (the
 #     d6 pool, #120).
 # - The HUD reads the main scene's `CombatController` (#45-#50).
 
@@ -254,7 +254,7 @@ func test_dice_log_shows_each_roll():
 		assert_string_contains(line, "Player", "the attack line names the attacker")
 		# (The d20 parts of this check were rewritten for the d6 pool by #120, as its ticket says.)
 		assert_string_contains(line, "%d dice %s = %d successes" % [result.dice.size(), str(result.dice), result.successes], "the newest line shows the dice and the successes")
-		assert_string_contains(line, "vs defence 1", "it shows the target's defence")
+		assert_string_contains(line, "vs defence 2", "it shows the target's defence (the cultist's 2, agreed on #120)")
 		if result.hit:
 			assert_string_contains(line, "hit", "it says hit")
 			assert_string_contains(line, "damage %d" % result.damage, "it shows the damage")
