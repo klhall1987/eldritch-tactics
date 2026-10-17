@@ -55,9 +55,10 @@ const Blood := preload("res://scripts/blood.gd")
 
 ## Every die comes from here, so seeding it fixes the dice.
 var rng := RandomNumberGenerator.new()
-## Where cuts go (#93): their own dice (seeded from `rng` when combat starts), so they never change an
-## attack's rolls.
-var _wound_rng := RandomNumberGenerator.new()
+## The player character's knife tip through his current attack, [[clip seconds, position], ...] (#112):
+## where the blade goes decides where it cuts.
+var _blade_path := []
+var _blade_tip := Vector3.ZERO  # the tip of his knife, in the knife's own space
 var running := false
 var combatants: Array[Node3D] = []
 ## Each combatant's initiative roll (the d20 alone, without their bonus).
@@ -300,6 +301,7 @@ func _hide_preview() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_record_blade()
 	if Input.is_action_just_pressed("end_turn"):
 		request_end_turn()
 	if running and active != detective and _enemy_step != EnemyStep.NONE:
@@ -399,10 +401,13 @@ func _approach_path(enemy: Node3D) -> PackedVector3Array:
 
 
 ## The attacker throws its `attack`; on a hit, the target flinches (`hit`) as the second blow lands,
-## HIT_AT of the way through the attack, and the player character's knife opens a cut on it (#93) that
+## HIT_AT of the way through the attack, and the player character's knife opens a cut on it where its
+## slash meets the body (#93, #112) that
 ## sprays blood, much more on a critical hit (#94).
 ## Enemies settle back into `idle` when a clip finishes (the player's own script picks his stance).
 func _animate_attack(attacker: Node3D, target: Node3D, hit: bool, critical: bool) -> void:
+	if attacker == detective:
+		_blade_path.clear()
 	if not _perform(attacker, &"attack") or not hit:
 		return
 	var delay := _clip_length(attacker, &"attack") * HIT_AT
@@ -410,7 +415,8 @@ func _animate_attack(attacker: Node3D, target: Node3D, hit: bool, critical: bool
 		if is_instance_valid(target):
 			_perform(target, &"hit")
 			if attacker == detective and is_instance_valid(attacker):
-				var wound := Wounds.open(target, attacker, _wound_rng)
+				_record_blade()
+				var wound := Wounds.cut(target, attacker, _blade_path, _clip_length(attacker, &"attack") / 2.0)
 				if wound != null:
 					Blood.spray(wound, target, attacker, critical))
 
@@ -449,7 +455,6 @@ func _play_animation(combatant: Node, clip: StringName) -> void:
 ## order and starts the first turn.
 func start_combat(fighters: Array) -> void:
 	combatants.assign(fighters)
-	_wound_rng.seed = rng.seed  # a seeded fight cuts the same way every time
 	rolls = {}
 	hit_points = {}
 	defeated.clear()
@@ -512,3 +517,21 @@ func order_by_initiative(initiative_rolls: Dictionary) -> Array:
 			return initiative_bonus(a) > initiative_bonus(b)
 		return a == detective and b != detective)
 	return order
+
+
+## While the player character attacks, notes where his knife's tip is (for where it cuts, #112).
+func _record_blade() -> void:
+	if detective == null:
+		return
+	var player := _animation_player(detective)
+	var knife := detective.find_child("Knife", true, false) as Node3D
+	if player == null or knife == null or player.current_animation != &"attack":
+		return
+	if _blade_tip == Vector3.ZERO:
+		for mi: MeshInstance3D in knife.find_children("*", "MeshInstance3D", true, false):
+			for s in mi.mesh.get_surface_count():
+				for v: Vector3 in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+					var p := knife.global_transform.affine_inverse() * mi.global_transform * v
+					if p.length() > _blade_tip.length():
+						_blade_tip = p
+	_blade_path.append([player.current_animation_position, knife.global_transform * _blade_tip])

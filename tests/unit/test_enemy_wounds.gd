@@ -164,8 +164,10 @@ func _gash_colour_and_length(wound: Node3D) -> Array:
 
 
 # Given the player character hits the cultist, when the slash lands (his hit reaction starts), then a
-# wound appears on him: a dark red gash at least 0.08 m long, on his torso (between his waist and
-# shoulders), on the side facing the attacker, within 0.05 m of his body's surface.
+# wound appears on him: a dark red gash at least 0.08 m long, on the side facing the attacker, within
+# 0.05 m of his body's surface.
+# (Changed by #112, as its ticket says: the torso check is gone, since the cut now goes at the blade's
+# height; test_cuts_follow_blade.gd checks where.)
 func test_a_hit_opens_a_wound():
 	var fight := await _fight()
 	if fight.is_empty():
@@ -186,11 +188,7 @@ func test_a_hit_opens_a_wound():
 	var colour: Color = look[0]
 	assert_true(colour.r >= 0.25 and colour.g <= 0.15 and colour.b <= 0.15, "the wound is dark red (%s)" % colour)
 	assert_gte(look[1], 0.08, "the gash is at least 0.08 m long (%.3f m)" % look[1])
-	var skeleton := _skeleton(cultist)
 	var at := wound.global_position
-	var waist := _bone_y(skeleton, "spine")
-	var shoulders := _bone_y(skeleton, "head")
-	assert_between(at.y, waist, shoulders, "the wound is on his torso (%.2f m up; waist %.2f, shoulders %.2f)" % [at.y, waist, shoulders])
 	var out := Vector2(at.x - cultist.global_position.x, at.z - cultist.global_position.z)
 	var to_attacker := Vector2(body.global_position.x - cultist.global_position.x, body.global_position.z - cultist.global_position.z)
 	assert_gt(out.dot(to_attacker), 0.0, "the wound is on the side facing the attacker")
