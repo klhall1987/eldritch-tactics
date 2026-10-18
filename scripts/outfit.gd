@@ -18,6 +18,10 @@ const SLOTS: Array[String] = ["top", "bottom", "feet"]
 	"res://assets/models/clothes/sneakers_dark.glb",
 ]
 
+## Every clothing piece loaded so far, kept for the rest of the run (#130): path -> PackedScene. Without
+## it, Godot unloads a piece once its meshes are on him, and reads it from disk again the next time.
+static var _loaded := {}
+
 var _worn := {}  # slot -> piece path
 var _meshes := {}  # slot -> [MeshInstance3D, ...] drawn on him
 
@@ -34,7 +38,7 @@ func _ready() -> void:
 func wear(slot: String, piece_path: String) -> bool:
 	if not slot in SLOTS or slot_of(piece_path) != slot or _skeleton == null:
 		return false
-	var piece := (load(piece_path) as PackedScene).instantiate()
+	var piece := _piece(piece_path).instantiate()
 	take_off(slot)
 	var meshes := []
 	for mi: MeshInstance3D in piece.find_children("*", "MeshInstance3D", true, false):
@@ -76,7 +80,7 @@ func worn_meshes(slot: String) -> Array:
 
 ## The slot a clothing piece fills (its `slot` metadata), or "" if it isn't one.
 static func slot_of(piece_path: String) -> String:
-	var packed := load(piece_path) as PackedScene
+	var packed := _piece(piece_path)
 	if packed == null:
 		return ""
 	var piece := packed.instantiate()
@@ -91,3 +95,13 @@ func _find_skeleton() -> Skeleton3D:
 		return null
 	var skeletons := character.find_children("*", "Skeleton3D", true, false)
 	return skeletons[0] if not skeletons.is_empty() else null
+
+
+## The clothing piece at `piece_path`, loaded once and kept (#130); null if it can't be loaded.
+static func _piece(piece_path: String) -> PackedScene:
+	if not _loaded.has(piece_path):
+		var packed := load(piece_path) as PackedScene
+		if packed == null:
+			return null
+		_loaded[piece_path] = packed
+	return _loaded[piece_path]
