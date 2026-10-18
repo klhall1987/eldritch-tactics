@@ -96,6 +96,7 @@ metadata/defence = 2
 metadata/weapon_damage = 1
 metadata/body_radius = 0.31
 metadata/max_hit_points = 12
+metadata/body_parts = [{"id": "body", "name": "body", "bones": ["root", "spine", "head"], "share": 1.0}, {"id": "leg_1_l", "name": "left front leg", "bones": ["leg_1_upper_l", "leg_1_lower_l", "leg_1_foot_l"], "share": 0.25}, {"id": "leg_1_r", "name": "right front leg", "bones": ["leg_1_upper_r", "leg_1_lower_r", "leg_1_foot_r"], "share": 0.25}, {"id": "leg_2_l", "name": "left back leg", "bones": ["leg_2_upper_l", "leg_2_lower_l", "leg_2_foot_l"], "share": 0.25}, {"id": "leg_2_r", "name": "right back leg", "bones": ["leg_2_upper_r", "leg_2_lower_r", "leg_2_foot_r"], "share": 0.25}, {"id": "mandible_l", "name": "left mandible", "bones": ["mandible_l"], "share": 0.15}, {"id": "mandible_r", "name": "right mandible", "bones": ["mandible_r"], "share": 0.15}]
 
 [node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 
