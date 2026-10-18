@@ -158,6 +158,7 @@ func test_cultist_attack_plays_and_a_hit_makes_the_player_flinch():
 		var fight := await _fight(seed_value, false, 1.0)
 		if fight.is_empty():
 			return
+		_results = []  # each seed's attacks only (added with the owner's go-ahead on #121)
 		var controller: Node = fight[1]
 		var watch := await _watch(fight[5], fight[4], 7.0, func(): return not _results.is_empty() and fight[4].current_animation == "hit")
 		if _results.is_empty() or not bool(_results[0].hit):
