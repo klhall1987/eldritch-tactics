@@ -262,7 +262,7 @@ func test_misses_and_punches_leave_no_wounds():
 	var controller: Node = fight[1]
 	var body: CharacterBody3D = fight[2]
 	var cultist: Node3D = fight[3]
-	cultist.set_meta("armour_class", 100)  # only a natural 20 hits
+	cultist.set_meta("defence", 100)  # no attack can hit (changed from armour_class for the d6 pool by #120)
 	var misses := 0
 	for i in 6:
 		controller.actions_left = 1
@@ -270,11 +270,11 @@ func test_misses_and_punches_leave_no_wounds():
 		controller.hit_points[cultist] = 12
 		await wait_seconds(1.3)
 		if result.hit:
-			return  # a natural 20: this check can't tell; the other tests cover hits
+			return  # (it can't: no pool reaches 100 successes)
 		misses += 1
 		assert_eq(get_tree().get_nodes_in_group("wounds").size(), 0, "a miss leaves no wound")
 	assert_gt(misses, 0, "some attacks missed")
-	body.set_meta("armour_class", 0)  # the cultist's punches land
+	body.set_meta("defence", 0)  # the cultist's attacks land unless they roll no successes (#120)
 	var punched := false
 	for i in 4:
 		var result: Dictionary = controller.attack(cultist, body)

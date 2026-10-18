@@ -64,20 +64,18 @@ func _refresh_turn_order() -> void:
 
 func _log_initiative() -> void:
 	for combatant: Node3D in _controller.turn_order:
-		var roll: int = _controller.rolls[combatant]
-		var bonus: int = _controller.initiative_bonus(combatant)
-		_log("%s initiative: d20 %d + %d = %d" % [_name(combatant), roll, bonus, roll + bonus])
+		var dice: Array = _controller.rolls[combatant]
+		_log("%s initiative: %d dice %s = %d successes" % [_name(combatant), dice.size(), str(dice),
+			_controller.count_successes(dice)])
 
 
 func _log_attack(result: Dictionary) -> void:
 	var attacker: Node3D = result.attacker
-	var target: Node3D = result.target
-	var line := "%s attacks: d20 %d + %d = %d vs AC %d, %s" % [_name(attacker), result.roll,
-		_controller.attack_bonus(attacker), result.total, _controller.armour_class(target),
-		"hit" if result.hit else "miss"]
+	var line := "%s attacks: %d dice %s = %d successes vs defence %d, %s" % [_name(attacker), result.dice.size(),
+		str(result.dice), result.successes, result.defence,
+		("critical hit" if result.critical else "hit") if result.hit else "miss"]
 	if result.hit:
-		line += "; damage %dd%d+%d = %d" % [result.damage_rolls.size(), attacker.get_meta("damage_die", 4),
-			attacker.get_meta("damage_bonus", 0), result.damage]
+		line += "; damage %d" % result.damage
 	_log(line)
 
 

@@ -61,14 +61,12 @@ room_path = NodePath("../RoomCollision")
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
 script = ExtResource("7_player")
 combat_controller_path = NodePath("../CombatController")
-metadata/initiative_bonus = 2
+metadata/initiative_pool = 4
 metadata/display_name = "Player"
 metadata/movement = 9.0
-metadata/attack_bonus = 4
-metadata/armour_class = 13
-metadata/damage_dice = 1
-metadata/damage_die = 4
-metadata/damage_bonus = 2
+metadata/attack_pool = 5
+metadata/defence = 2
+metadata/weapon_damage = 1
 metadata/body_radius = 0.25
 metadata/max_hit_points = 20
 
@@ -90,16 +88,15 @@ controller_path = NodePath("../../CombatController")
 
 [node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
-metadata/initiative_bonus = 1
+metadata/initiative_pool = 3
 metadata/display_name = "Cultist"
 metadata/movement = 6.0
-metadata/attack_bonus = 3
-metadata/armour_class = 11
-metadata/damage_dice = 1
-metadata/damage_die = 6
-metadata/damage_bonus = 1
+metadata/attack_pool = 4
+metadata/defence = 2
+metadata/weapon_damage = 1
 metadata/body_radius = 0.31
 metadata/max_hit_points = 12
+metadata/body_parts = [{"id": "body", "name": "body", "bones": ["root", "spine", "head"], "share": 1.0}, {"id": "leg_1_l", "name": "left front leg", "bones": ["leg_1_upper_l", "leg_1_lower_l", "leg_1_foot_l"], "share": 0.25}, {"id": "leg_1_r", "name": "right front leg", "bones": ["leg_1_upper_r", "leg_1_lower_r", "leg_1_foot_r"], "share": 0.25}, {"id": "leg_2_l", "name": "left back leg", "bones": ["leg_2_upper_l", "leg_2_lower_l", "leg_2_foot_l"], "share": 0.25}, {"id": "leg_2_r", "name": "right back leg", "bones": ["leg_2_upper_r", "leg_2_lower_r", "leg_2_foot_r"], "share": 0.25}, {"id": "mandible_l", "name": "left mandible", "bones": ["mandible_l"], "share": 0.15}, {"id": "mandible_r", "name": "right mandible", "bones": ["mandible_r"], "share": 0.15}]
 
 [node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 

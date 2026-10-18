@@ -11,8 +11,10 @@ extends GutTest
 # - Cuts and blood are #93's `wounds` and #94's `blood_sprays` groups.
 
 const MONSTER_PATH := "res://assets/models/characters/monster.glb"
-const STATS := {"initiative_bonus": 1, "movement": 6.0, "attack_bonus": 3, "armour_class": 11,
-	"damage_dice": 1, "damage_die": 6, "damage_bonus": 1, "max_hit_points": 12}
+# (The attack stats became the d6 pool's with #120, as its ticket says, with defence 2 as agreed on
+# #120; initiative became a pool with #121.)
+const STATS := {"initiative_pool": 3, "movement": 6.0, "attack_pool": 4, "defence": 2, "weapon_damage": 1,
+	"max_hit_points": 12}
 const WHERE := Vector3(0.6, 0, -1.2)  # where the cultist stood (#10)
 
 var _window: SubViewport

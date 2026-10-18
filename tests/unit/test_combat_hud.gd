@@ -12,8 +12,9 @@ extends GutTest
 #     `BonusAction` (Labels reading "ready" or "used").
 #   - `EndTurn`: a Button.
 #   - `DiceLog`: a container of Labels, one per line, newest last. An initiative line reads like
-#     "Player initiative: d20 14 + 2 = 16"; an attack line like
-#     "Player attacks: d20 14 + 4 = 18 vs AC 11, hit; damage 1d4+2 = 5" (his knife's 1d4, #92).
+#     "Player initiative: 4 dice [5, 2, 6, 3] = 2 successes" (#121); an attack line like
+#     "Player attacks: 5 dice [6, 4, 2, 6, 1] = 5 successes vs defence 2, critical hit; damage 4" (the
+#     d6 pool, #120).
 # - The HUD reads the main scene's `CombatController` (#45-#50).
 
 var _turns := []  # every combatant named by turn_started, in order
@@ -233,9 +234,9 @@ func test_dice_log_shows_each_roll():
 	var newest := lines.slice(lines.size() - 2)
 	var names := {body: "Player", cultist: "Cultist"}
 	for combatant: Node3D in [body, cultist]:
-		var roll: int = controller.rolls[combatant]
-		var bonus: int = controller.initiative_bonus(combatant)
-		var expected := "d20 %d + %d = %d" % [roll, bonus, roll + bonus]
+		# (Rewritten from "d20 + bonus" for the d6 pool by #121, as its ticket says.)
+		var dice: Array = controller.rolls[combatant]
+		var expected := "%d dice %s = %d successes" % [dice.size(), str(dice), controller.count_successes(dice)]
 		var found := false
 		for line in newest:
 			if line.contains(names[combatant]) and line.contains("initiative") and line.contains(expected):
@@ -251,12 +252,14 @@ func test_dice_log_shows_each_roll():
 		lines = _labels(log)
 		var line: String = lines[-1] if not lines.is_empty() else ""
 		assert_string_contains(line, "Player", "the attack line names the attacker")
-		assert_string_contains(line, "d20 %d + 4 = %d" % [result.roll, result.total], "the newest line shows the attack roll, bonus and total")
-		assert_string_contains(line, "AC 11", "it shows the target's AC")
+		# (The d20 parts of this check were rewritten for the d6 pool by #120, as its ticket says.)
+		assert_string_contains(line, "%d dice %s = %d successes" % [result.dice.size(), str(result.dice), result.successes], "the newest line shows the dice and the successes")
+		assert_string_contains(line, "vs defence 2", "it shows the target's defence (the cultist's 2, agreed on #120)")
 		if result.hit:
 			assert_string_contains(line, "hit", "it says hit")
-			var dice: int = result.damage_rolls.size()
-			assert_string_contains(line, "%dd4+2 = %d" % [dice, result.damage], "it shows the damage dice, bonus and total")
+			assert_string_contains(line, "damage %d" % result.damage, "it shows the damage")
+			if result.critical:
+				assert_string_contains(line, "critical", "it says critical")
 		else:
 			assert_string_contains(line, "miss", "it says miss")
 		seen[result.hit] = true
