@@ -12,7 +12,7 @@ extends Node
 ## order. Combat ends in victory when no enemy is left standing, or in defeat if the player character falls.
 ## Enemies play their own turns: after a short pause an enemy shambles along a path towards the
 ## player character (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
-## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_pool`,
+## Combatants keep their stats as node metadata (`initiative_pool`, `movement`, `attack_pool`,
 ## `defence`, `weapon_damage`, `body_radius`, `max_hit_points`).
 
 ## Emitted when a combatant's turn begins.
@@ -34,6 +34,8 @@ const ATTACK_REACH := 1.5
 const BODY_HEIGHT := 1.8
 ## How far through the attacker's `attack` clip the target flinches: as the second blow lands.
 const HIT_AT := 0.7
+## The body part that is a combatant's main pool (#122).
+const BODY := "body"
 
 const Wounds := preload("res://scripts/wounds.gd")
 const Blood := preload("res://scripts/blood.gd")
@@ -61,7 +63,7 @@ var _blade_path := []
 var _blade_tip := Vector3.ZERO  # the tip of his knife, in the knife's own space
 var running := false
 var combatants: Array[Node3D] = []
-## Each combatant's initiative roll (the d20 alone, without their bonus).
+## Each combatant's initiative dice (their initiative pool of d6, #121).
 var rolls := {}
 ## Who acts when, first to act first.
 var turn_order: Array[Node3D] = []
@@ -77,6 +79,9 @@ var bonus_actions_left := 0
 
 ## Each combatant's current hit points, and who has been defeated (at 0).
 var hit_points := {}
+## Each combatant's limbs' hit points (#122): combatant -> {part id: hit points}. Its body is its main
+## pool, `hit_points`.
+var part_health := {}
 var defeated: Array[Node3D] = []
 
 ## The path previewed under the mouse on the player character's turn: its points (from him), length in
@@ -213,6 +218,30 @@ func roll_pool(size: int) -> Array[int]:
 ## The successes in a pool (#120): one per die of 4 or more, and each pair of 6s counts as four.
 func count_successes(dice: Array) -> int:
 	return dice.filter(func(die: int) -> bool: return die >= 4).size() + (dice.count(6) / 2) * 2
+
+
+## A combatant's body parts (#122), from its `body_parts` metadata: Dictionaries with `id`, `name`,
+## `bones` and `share` (of its maximum hit points). The part with id `body` is its main pool.
+func body_parts(combatant: Node) -> Array:
+	return combatant.get_meta("body_parts", [])
+
+
+## A part's maximum hit points (#122): its share of the combatant's maximum (rounded, at least 1), or,
+## for its body, its maximum.
+func part_max_hit_points(combatant: Node, id: String) -> int:
+	if id == BODY:
+		return max_hit_points(combatant)
+	for part: Dictionary in body_parts(combatant):
+		if part.id == id:
+			return maxi(1, roundi(max_hit_points(combatant) * float(part.share)))
+	return 0
+
+
+## A part's current hit points (#122); for its body, the combatant's main hit points.
+func part_hit_points(combatant: Node, id: String) -> int:
+	if id == BODY:
+		return hit_points.get(combatant, max_hit_points(combatant))
+	return part_health.get(combatant, {}).get(id, part_max_hit_points(combatant, id))
 
 
 func max_hit_points(combatant: Node) -> int:
@@ -476,10 +505,15 @@ func start_combat(fighters: Array) -> void:
 	combatants.assign(fighters)
 	rolls = {}
 	hit_points = {}
+	part_health = {}
 	defeated.clear()
 	for combatant in combatants:
-		rolls[combatant] = roll_d20()
+		rolls[combatant] = roll_pool(initiative_pool(combatant))
 		hit_points[combatant] = max_hit_points(combatant)
+		part_health[combatant] = {}
+		for part: Dictionary in body_parts(combatant):
+			if part.id != BODY:
+				part_health[combatant][part.id] = part_max_hit_points(combatant, part.id)
 	turn_order.assign(order_by_initiative(rolls))
 	running = true
 	round = 1
@@ -510,12 +544,10 @@ func _start_turn(combatant: Node3D) -> void:
 	turn_started.emit(active)
 
 
-func roll_d20() -> int:
-	return rng.randi_range(1, 20)
+## How many d6 a combatant rolls for initiative (#121).
+func initiative_pool(combatant: Node) -> int:
+	return combatant.get_meta("initiative_pool", 1)
 
-
-func initiative_bonus(combatant: Node) -> int:
-	return combatant.get_meta("initiative_bonus", 0)
 
 
 ## A combatant's full movement per turn, in metres.
@@ -523,17 +555,17 @@ func movement(combatant: Node) -> float:
 	return combatant.get_meta("movement", 0.0)
 
 
-## The combatants in `initiative_rolls` (combatant -> d20 roll), by roll plus bonus from highest
-## to lowest. Ties go to the higher bonus, then to the player character.
+## The combatants in `initiative_rolls` (combatant -> their initiative dice), from most successes to
+## fewest (#121). Ties go to the larger initiative pool, then to the player character.
 func order_by_initiative(initiative_rolls: Dictionary) -> Array:
 	var order := initiative_rolls.keys()
 	order.sort_custom(func(a: Node, b: Node) -> bool:
-		var total_a: int = initiative_rolls[a] + initiative_bonus(a)
-		var total_b: int = initiative_rolls[b] + initiative_bonus(b)
-		if total_a != total_b:
-			return total_a > total_b
-		if initiative_bonus(a) != initiative_bonus(b):
-			return initiative_bonus(a) > initiative_bonus(b)
+		var successes_a := count_successes(initiative_rolls[a])
+		var successes_b := count_successes(initiative_rolls[b])
+		if successes_a != successes_b:
+			return successes_a > successes_b
+		if initiative_pool(a) != initiative_pool(b):
+			return initiative_pool(a) > initiative_pool(b)
 		return a == detective and b != detective)
 	return order
 

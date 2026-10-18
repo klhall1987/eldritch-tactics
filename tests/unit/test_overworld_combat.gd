@@ -1,19 +1,20 @@
 extends GutTest
 # Combat starts in the overworld (ticket #45): bumping into an enemy starts turn-based combat right
-# there in the garage. Everyone rolls initiative (d20 + bonus), the turn order runs from highest to
-# lowest, and the first combatant's turn begins.
+# there in the garage. Everyone rolls initiative (since #121, a pool of d6 counting successes), the turn
+# order runs from most successes to fewest, and the first combatant's turn begins.
 #
 # Interface these tests choose:
 # - The main scene has a `CombatController` node. It has `running` (bool), `combatants` (Array),
-#   `rolls` (combatant -> its d20 roll), `turn_order` (Array, first to act first) and `active` (the
-#   combatant whose turn it is), plus a `turn_started(combatant)` signal.
+#   `rolls` (combatant -> its initiative dice, #121), `turn_order` (Array, first to act first) and
+#   `active` (the combatant whose turn it is), plus a `turn_started(combatant)` signal.
 # - `start_combat(combatants)` rolls initiative and starts the first turn. The detective's
 #   combatant is his physics body (the `Player` CharacterBody3D), and the controller's `detective`
 #   property points at it.
-# - Every die comes from the controller's `rng` (a RandomNumberGenerator), through `roll_d20()`.
-#   Setting `rng.seed` fixes the dice.
-# - Initiative bonuses are node metadata, `initiative_bonus`, read through
-#   `initiative_bonus(combatant)`. `order_by_initiative(rolls)` sorts combatants by roll plus bonus.
+# - Every die comes from the controller's `rng` (a RandomNumberGenerator), through `roll_pool(n)`
+#   (n d6; a d20 through `roll_d20()` until #121). Setting `rng.seed` fixes the dice.
+# - Initiative pools are node metadata, `initiative_pool`, read through `initiative_pool(combatant)`
+#   (#121; a d20 bonus before). `order_by_initiative(rolls)` sorts combatants by their dice's
+#   successes.
 
 const ACTIONS := ["move_up", "move_down", "move_left", "move_right"]
 const WALK_MINUS_Z := ["move_up", "move_right"]  # screen up+right walks along world -Z (#28)
@@ -64,7 +65,7 @@ func _controller(main: Node) -> Node:
 	var controller := _node(main, "CombatController")
 	if controller == null:
 		return null
-	for method in ["start_combat", "roll_d20", "initiative_bonus", "order_by_initiative"]:
+	for method in ["start_combat", "roll_pool", "initiative_pool", "order_by_initiative"]:  # (d20 names until #121)
 		assert_true(controller.has_method(method), "CombatController has %s()" % method)
 		if not controller.has_method(method):
 			return null
@@ -124,10 +125,10 @@ func test_bumping_into_the_cultist_starts_combat_in_place():
 	assert_lt(moved, 0.01, "the keys don't move him once combat starts (moved %.3f m)" % moved)
 
 
-# Given combat starts, when initiative is rolled, then each combatant's roll is a d20 (1-20) plus
-# their initiative bonus (detective +2, cultist +1), and every roll comes from a seedable random
-# generator, so a test can fix the dice.
-func test_initiative_is_a_seeded_d20_plus_bonus():
+# Given combat starts, when initiative is rolled, then each combatant rolls their initiative pool of
+# d6 (detective 4, cultist 3), and every die comes from a seedable random generator, so a test can fix
+# the dice. (Rewritten from d20 + bonus for the d6 pool by #121, as its ticket says.)
+func test_initiative_is_a_seeded_d6_pool():
 	var main := await _main()
 	if main == null:
 		return
@@ -136,31 +137,27 @@ func test_initiative_is_a_seeded_d20_plus_bonus():
 	var cultist := _node(main, "Cultist") as Node3D
 	if controller == null or body == null or cultist == null:
 		return
-	assert_eq(controller.initiative_bonus(body), 2, "the detective's initiative bonus is +2")
-	assert_eq(controller.initiative_bonus(cultist), 1, "the cultist's initiative bonus is +1")
+	assert_eq(controller.initiative_pool(body), 4, "the detective's initiative pool is 4 dice")
+	assert_eq(controller.initiative_pool(cultist), 3, "the cultist's initiative pool is 3 dice")
 	assert_true(controller.rng is RandomNumberGenerator, "the dice come from a RandomNumberGenerator")
 
-	# A d20: always 1-20, and over many rolls every face comes up.
+	# d6: always 1-6, and over many rolls every face comes up.
 	controller.rng.seed = 1234
 	var faces := {}
-	for i in 400:
-		var roll: int = controller.roll_d20()
-		assert_between(roll, 1, 20, "a d20 roll is 1-20")
-		faces[roll] = true
-	assert_eq(faces.size(), 20, "all twenty faces come up in 400 rolls")
+	for i in 100:
+		for die: int in controller.roll_pool(4):
+			assert_between(die, 1, 6, "a d6 is 1-6")
+			faces[die] = true
+	assert_eq(faces.size(), 6, "all six faces come up in 400 dice")
 
 	# Seeded: the same seed gives the same dice.
 	controller.rng.seed = 77
-	var first := []
-	for i in 10:
-		first.append(controller.roll_d20())
+	var first: Array = controller.roll_pool(10)
 	controller.rng.seed = 77
-	var again := []
-	for i in 10:
-		again.append(controller.roll_d20())
+	var again: Array = controller.roll_pool(10)
 	assert_eq(again, first, "the same seed rolls the same dice")
 
-	# Combat's initiative rolls are such dice, and fixed by the seed.
+	# Combat's initiative rolls are such pools, and fixed by the seed.
 	controller.rng.seed = 2024
 	controller.start_combat([body, cultist])
 	assert_eq(controller.rolls.size(), 2, "one initiative roll per combatant")
@@ -168,8 +165,11 @@ func test_initiative_is_a_seeded_d20_plus_bonus():
 	for combatant: Node3D in [body, cultist]:
 		assert_true(controller.rolls.has(combatant), "%s rolled initiative" % combatant.name)
 		if controller.rolls.has(combatant):
-			assert_between(controller.rolls[combatant], 1, 20, "%s's initiative roll is a d20" % combatant.name)
-			rolled[combatant] = controller.rolls[combatant]
+			var dice: Array = controller.rolls[combatant]
+			assert_eq(dice.size(), controller.initiative_pool(combatant), "%s rolls their initiative pool" % combatant.name)
+			for die: int in dice:
+				assert_between(die, 1, 6, "%s's initiative dice are d6" % combatant.name)
+			rolled[combatant] = dice
 	var other := await _main()
 	var other_controller := _controller(other) if other != null else null
 	if other_controller == null:
@@ -178,12 +178,13 @@ func test_initiative_is_a_seeded_d20_plus_bonus():
 	var other_cultist := _node(other, "Cultist") as Node3D
 	other_controller.rng.seed = 2024
 	other_controller.start_combat([other_body, other_cultist])
-	assert_eq(other_controller.rolls.get(other_body), rolled.get(body), "the same seed gives the detective the same roll")
-	assert_eq(other_controller.rolls.get(other_cultist), rolled.get(cultist), "the same seed gives the cultist the same roll")
+	assert_eq(other_controller.rolls.get(other_body), rolled.get(body), "the same seed gives the detective the same dice")
+	assert_eq(other_controller.rolls.get(other_cultist), rolled.get(cultist), "the same seed gives the cultist the same dice")
 
 
-# Given the initiative rolls, when the turn order is set, then it is sorted from highest to lowest
-# total, ties going to the higher bonus and then to the detective.
+# Given the initiative rolls, when the turn order is set, then it runs from most successes to fewest
+# (one per 4+, four per pair of 6s), ties going to the larger initiative pool and then to the
+# detective. (Rewritten from d20 totals for the d6 pool by #121, as its ticket says.)
 func test_turn_order_runs_from_highest_total():
 	var main := await _main()
 	if main == null:
@@ -194,17 +195,17 @@ func test_turn_order_runs_from_highest_total():
 	if controller == null or body == null or cultist == null:
 		return
 	assert_eq(controller.detective, body, "the controller knows the detective's combatant")
-	# Totals decide: detective 3 + 2 = 5, cultist 15 + 1 = 16.
-	assert_eq(controller.order_by_initiative({body: 3, cultist: 15}), [cultist, body], "the higher total goes first")
-	assert_eq(controller.order_by_initiative({cultist: 3, body: 15}), [body, cultist], "the higher total goes first, whatever order they're listed in")
-	# A tie on 12: detective 10 + 2, cultist 11 + 1. The higher bonus goes first.
-	assert_eq(controller.order_by_initiative({cultist: 11, body: 10}), [body, cultist], "a tied total goes to the higher bonus")
-	# A tie on total and bonus: the detective goes first.
-	cultist.set_meta("initiative_bonus", 2)
-	assert_eq(controller.order_by_initiative({cultist: 10, body: 10}), [body, cultist], "a full tie goes to the detective")
+	# Successes decide: detective 1, cultist 3.
+	assert_eq(controller.order_by_initiative({body: [4, 1, 2, 3], cultist: [5, 4, 6]}), [cultist, body], "more successes go first")
+	assert_eq(controller.order_by_initiative({cultist: [1, 2, 4], body: [6, 6, 1, 2]}), [body, cultist], "a pair of 6s counts four, whatever order they're listed in")
+	# A tie on 2 successes: the detective's pool (4) is larger than the cultist's (3).
+	assert_eq(controller.order_by_initiative({cultist: [4, 5, 1], body: [4, 5, 1, 1]}), [body, cultist], "a tie goes to the larger pool")
+	# A tie on successes and pool: the detective goes first.
+	cultist.set_meta("initiative_pool", 4)
+	assert_eq(controller.order_by_initiative({cultist: [4, 5, 1, 1], body: [4, 5, 1, 1]}), [body, cultist], "a full tie goes to the detective")
 
 	# Combat uses that order for the rolls it made.
-	cultist.set_meta("initiative_bonus", 1)
+	cultist.set_meta("initiative_pool", 3)
 	controller.rng.seed = 99
 	controller.start_combat([body, cultist])
 	assert_eq(controller.turn_order, controller.order_by_initiative(controller.rolls), "combat's turn order follows its initiative rolls")

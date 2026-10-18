@@ -12,7 +12,7 @@ extends GutTest
 #     `BonusAction` (Labels reading "ready" or "used").
 #   - `EndTurn`: a Button.
 #   - `DiceLog`: a container of Labels, one per line, newest last. An initiative line reads like
-#     "Player initiative: d20 14 + 2 = 16"; an attack line like
+#     "Player initiative: 4 dice [5, 2, 6, 3] = 2 successes" (#121); an attack line like
 #     "Player attacks: 5 dice [6, 4, 2, 6, 1] = 5 successes vs defence 2, critical hit; damage 4" (the
 #     d6 pool, #120).
 # - The HUD reads the main scene's `CombatController` (#45-#50).
@@ -234,9 +234,9 @@ func test_dice_log_shows_each_roll():
 	var newest := lines.slice(lines.size() - 2)
 	var names := {body: "Player", cultist: "Cultist"}
 	for combatant: Node3D in [body, cultist]:
-		var roll: int = controller.rolls[combatant]
-		var bonus: int = controller.initiative_bonus(combatant)
-		var expected := "d20 %d + %d = %d" % [roll, bonus, roll + bonus]
+		# (Rewritten from "d20 + bonus" for the d6 pool by #121, as its ticket says.)
+		var dice: Array = controller.rolls[combatant]
+		var expected := "%d dice %s = %d successes" % [dice.size(), str(dice), controller.count_successes(dice)]
 		var found := false
 		for line in newest:
 			if line.contains(names[combatant]) and line.contains("initiative") and line.contains(expected):
