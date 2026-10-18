@@ -34,6 +34,8 @@ const ATTACK_REACH := 1.5
 const BODY_HEIGHT := 1.8
 ## How far through the attacker's `attack` clip the target flinches: as the second blow lands.
 const HIT_AT := 0.7
+## The body part that is a combatant's main pool (#122).
+const BODY := "body"
 
 const Wounds := preload("res://scripts/wounds.gd")
 const Blood := preload("res://scripts/blood.gd")
@@ -77,6 +79,9 @@ var bonus_actions_left := 0
 
 ## Each combatant's current hit points, and who has been defeated (at 0).
 var hit_points := {}
+## Each combatant's limbs' hit points (#122): combatant -> {part id: hit points}. Its body is its main
+## pool, `hit_points`.
+var part_health := {}
 var defeated: Array[Node3D] = []
 
 ## The path previewed under the mouse on the player character's turn: its points (from him), length in
@@ -213,6 +218,30 @@ func roll_pool(size: int) -> Array[int]:
 ## The successes in a pool (#120): one per die of 4 or more, and each pair of 6s counts as four.
 func count_successes(dice: Array) -> int:
 	return dice.filter(func(die: int) -> bool: return die >= 4).size() + (dice.count(6) / 2) * 2
+
+
+## A combatant's body parts (#122), from its `body_parts` metadata: Dictionaries with `id`, `name`,
+## `bones` and `share` (of its maximum hit points). The part with id `body` is its main pool.
+func body_parts(combatant: Node) -> Array:
+	return combatant.get_meta("body_parts", [])
+
+
+## A part's maximum hit points (#122): its share of the combatant's maximum (rounded, at least 1), or,
+## for its body, its maximum.
+func part_max_hit_points(combatant: Node, id: String) -> int:
+	if id == BODY:
+		return max_hit_points(combatant)
+	for part: Dictionary in body_parts(combatant):
+		if part.id == id:
+			return maxi(1, roundi(max_hit_points(combatant) * float(part.share)))
+	return 0
+
+
+## A part's current hit points (#122); for its body, the combatant's main hit points.
+func part_hit_points(combatant: Node, id: String) -> int:
+	if id == BODY:
+		return hit_points.get(combatant, max_hit_points(combatant))
+	return part_health.get(combatant, {}).get(id, part_max_hit_points(combatant, id))
 
 
 func max_hit_points(combatant: Node) -> int:
@@ -476,10 +505,15 @@ func start_combat(fighters: Array) -> void:
 	combatants.assign(fighters)
 	rolls = {}
 	hit_points = {}
+	part_health = {}
 	defeated.clear()
 	for combatant in combatants:
 		rolls[combatant] = roll_pool(initiative_pool(combatant))
 		hit_points[combatant] = max_hit_points(combatant)
+		part_health[combatant] = {}
+		for part: Dictionary in body_parts(combatant):
+			if part.id != BODY:
+				part_health[combatant][part.id] = part_max_hit_points(combatant, part.id)
 	turn_order.assign(order_by_initiative(rolls))
 	running = true
 	round = 1
