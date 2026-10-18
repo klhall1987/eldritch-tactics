@@ -12,7 +12,7 @@ extends Node
 ## order. Combat ends in victory when no enemy is left standing, or in defeat if the player character falls.
 ## Enemies play their own turns: after a short pause an enemy shambles along a path towards the
 ## player character (up to its movement, stopping at reach), attacks him if it can, then ends its turn.
-## Combatants keep their stats as node metadata (`initiative_bonus`, `movement`, `attack_pool`,
+## Combatants keep their stats as node metadata (`initiative_pool`, `movement`, `attack_pool`,
 ## `defence`, `weapon_damage`, `body_radius`, `max_hit_points`).
 
 ## Emitted when a combatant's turn begins.
@@ -61,7 +61,7 @@ var _blade_path := []
 var _blade_tip := Vector3.ZERO  # the tip of his knife, in the knife's own space
 var running := false
 var combatants: Array[Node3D] = []
-## Each combatant's initiative roll (the d20 alone, without their bonus).
+## Each combatant's initiative dice (their initiative pool of d6, #121).
 var rolls := {}
 ## Who acts when, first to act first.
 var turn_order: Array[Node3D] = []
@@ -478,7 +478,7 @@ func start_combat(fighters: Array) -> void:
 	hit_points = {}
 	defeated.clear()
 	for combatant in combatants:
-		rolls[combatant] = roll_d20()
+		rolls[combatant] = roll_pool(initiative_pool(combatant))
 		hit_points[combatant] = max_hit_points(combatant)
 	turn_order.assign(order_by_initiative(rolls))
 	running = true
@@ -510,12 +510,10 @@ func _start_turn(combatant: Node3D) -> void:
 	turn_started.emit(active)
 
 
-func roll_d20() -> int:
-	return rng.randi_range(1, 20)
+## How many d6 a combatant rolls for initiative (#121).
+func initiative_pool(combatant: Node) -> int:
+	return combatant.get_meta("initiative_pool", 1)
 
-
-func initiative_bonus(combatant: Node) -> int:
-	return combatant.get_meta("initiative_bonus", 0)
 
 
 ## A combatant's full movement per turn, in metres.
@@ -523,17 +521,17 @@ func movement(combatant: Node) -> float:
 	return combatant.get_meta("movement", 0.0)
 
 
-## The combatants in `initiative_rolls` (combatant -> d20 roll), by roll plus bonus from highest
-## to lowest. Ties go to the higher bonus, then to the player character.
+## The combatants in `initiative_rolls` (combatant -> their initiative dice), from most successes to
+## fewest (#121). Ties go to the larger initiative pool, then to the player character.
 func order_by_initiative(initiative_rolls: Dictionary) -> Array:
 	var order := initiative_rolls.keys()
 	order.sort_custom(func(a: Node, b: Node) -> bool:
-		var total_a: int = initiative_rolls[a] + initiative_bonus(a)
-		var total_b: int = initiative_rolls[b] + initiative_bonus(b)
-		if total_a != total_b:
-			return total_a > total_b
-		if initiative_bonus(a) != initiative_bonus(b):
-			return initiative_bonus(a) > initiative_bonus(b)
+		var successes_a := count_successes(initiative_rolls[a])
+		var successes_b := count_successes(initiative_rolls[b])
+		if successes_a != successes_b:
+			return successes_a > successes_b
+		if initiative_pool(a) != initiative_pool(b):
+			return initiative_pool(a) > initiative_pool(b)
 		return a == detective and b != detective)
 	return order
 

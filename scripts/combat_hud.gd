@@ -64,9 +64,9 @@ func _refresh_turn_order() -> void:
 
 func _log_initiative() -> void:
 	for combatant: Node3D in _controller.turn_order:
-		var roll: int = _controller.rolls[combatant]
-		var bonus: int = _controller.initiative_bonus(combatant)
-		_log("%s initiative: d20 %d + %d = %d" % [_name(combatant), roll, bonus, roll + bonus])
+		var dice: Array = _controller.rolls[combatant]
+		_log("%s initiative: %d dice %s = %d successes" % [_name(combatant), dice.size(), str(dice),
+			_controller.count_successes(dice)])
 
 
 func _log_attack(result: Dictionary) -> void:

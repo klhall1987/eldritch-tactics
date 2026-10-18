@@ -61,7 +61,7 @@ room_path = NodePath("../RoomCollision")
 transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -1.2, 0, 0.6)
 script = ExtResource("7_player")
 combat_controller_path = NodePath("../CombatController")
-metadata/initiative_bonus = 2
+metadata/initiative_pool = 4
 metadata/display_name = "Player"
 metadata/movement = 9.0
 metadata/attack_pool = 5
@@ -88,7 +88,7 @@ controller_path = NodePath("../../CombatController")
 
 [node name="Cultist" parent="." unique_id=1056517574 groups=["enemies"] instance=ExtResource("4_cultist")]
 transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0.6, 0, -1.2)
-metadata/initiative_bonus = 1
+metadata/initiative_pool = 3
 metadata/display_name = "Cultist"
 metadata/movement = 6.0
 metadata/attack_pool = 4
