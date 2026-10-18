@@ -3,22 +3,23 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://de2v7ljplib0c"
-path="res://.godot/imported/tee_purple_tee_purple_fabric.png-8654a7120f7c17e383259be60ec44945.ctex"
+path.s3tc="res://.godot/imported/tee_purple_tee_purple_fabric.png-8654a7120f7c17e383259be60ec44945.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
-"md5": "1663557ca9a40f2848062ddc062c8334"
+"md5": "bab6bcf4a4088be9e9c20138b14ac0f4"
 }
 
 [deps]
 
 source_file="res://assets/models/clothes/tee_purple_tee_purple_fabric.png"
-dest_files=["res://.godot/imported/tee_purple_tee_purple_fabric.png-8654a7120f7c17e383259be60ec44945.ctex"]
+dest_files=["res://.godot/imported/tee_purple_tee_purple_fabric.png-8654a7120f7c17e383259be60ec44945.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

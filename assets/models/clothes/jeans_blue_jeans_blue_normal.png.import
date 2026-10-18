@@ -3,28 +3,29 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bs8k5qyf07hpf"
-path="res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.ctex"
+path.s3tc="res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
-"md5": "5b7acef9ac827b79c682f23fbe6b87c8"
+"md5": "08d06a6885043463dc8a8a47cbcf89e0"
 }
 
 [deps]
 
 source_file="res://assets/models/clothes/jeans_blue_jeans_blue_normal.png"
-dest_files=["res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.ctex"]
+dest_files=["res://.godot/imported/jeans_blue_jeans_blue_normal.png-d92d1aaafe44105f7e3cc34cf4ff79f2.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

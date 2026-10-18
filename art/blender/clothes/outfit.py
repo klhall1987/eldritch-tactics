@@ -83,6 +83,9 @@ def keep_clear(cloth, body, fit=None):
                         v.co += n * (2 * GAP - depth)
 
 
+FABRIC_SIZE = 1024  # the tee's and jeans' colour and normal maps, in pixels (#131)
+
+
 def fabric_detail(piece, folder, image):
     """Makes the cloth read at the game's zoom: a height map of its fabric becomes a normal map, and is
     baked lightly into its colour (keeping the colour's average, so the dye stays as it is). The tee's
@@ -90,11 +93,15 @@ def fabric_detail(piece, folder, image):
     some fading, since their source has no bump map. Other pieces are left as they are."""
     if piece not in ("tee_purple", "jeans_blue"):
         return image, None
+    if image.size[0] > FABRIC_SIZE:  # plenty at the game's zoom, a quarter of the 2048 px source (#131)
+        image.scale(FABRIC_SIZE, FABRIC_SIZE)
     w, h = image.size
     pixels = np.array(image.pixels[:], dtype=np.float32).reshape(h, w, 4)
     rng = np.random.default_rng(82)
     if piece == "tee_purple":
         bump = human.load(f"clothes/{folder}/T-shirt_basic-bump.png")
+        if bump.size[:] != image.size[:]:
+            bump.scale(w, h)
         bw, bh = bump.size
         height = np.array(bump.pixels[:], dtype=np.float32).reshape(bh, bw, 4)[..., :3].mean(axis=-1)
         height = (height - height.min()) / max(1e-6, np.ptp(height))
