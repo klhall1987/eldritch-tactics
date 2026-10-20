@@ -3,6 +3,9 @@ extends Node
 ## (assets/models/clothes, #67) naming its slot in `slot` metadata. Putting one on moves its meshes
 ## onto the character's own skeleton, so they play every animation with him; it replaces whatever was
 ## in its slot. Taking one off leaves his base layer showing there. He starts in `default_pieces`.
+## A piece only goes on if it was made for his body type (its `body_type` metadata matching his model's,
+## #154), and while it's worn, the body regions it `covers` (his `body_<region>` meshes) are hidden so
+## his skin can't show through it (#153).
 
 ## Emitted when a slot's piece changes (put on, replaced or taken off).
 signal outfit_changed(slot: String)
@@ -16,8 +19,10 @@ const SLOTS: Array[String] = ["top", "bottom", "feet"]
 
 var _worn := {}  # slot -> piece path
 var _meshes := {}  # slot -> [MeshInstance3D, ...] drawn on him
+var _covers := {}  # slot -> [region, ...] its piece covers
 
 @onready var _skeleton := _find_skeleton()
+@onready var _character := get_node_or_null(character_path)
 
 
 func _ready() -> void:
@@ -26,9 +31,10 @@ func _ready() -> void:
 
 
 ## Puts the piece at `piece_path` on in `slot`, replacing what's there. Returns false, changing
-## nothing, if the piece doesn't fill that slot (or can't be loaded).
+## nothing, if the piece doesn't fill that slot, wasn't made for his body type (or names none), or
+## can't be loaded.
 func wear(slot: String, piece_path: String) -> bool:
-	if not slot in SLOTS or slot_of(piece_path) != slot or _skeleton == null:
+	if not slot in SLOTS or slot_of(piece_path) != slot or _skeleton == null or not fits(piece_path):
 		return false
 	var piece := (load(piece_path) as PackedScene).instantiate()
 	take_off(slot)
@@ -40,9 +46,12 @@ func wear(slot: String, piece_path: String) -> bool:
 		mi.transform = Transform3D.IDENTITY
 		mi.skeleton = mi.get_path_to(_skeleton)
 		meshes.append(mi)
+	var covers: Array = piece.get_meta("covers", [])
 	piece.free()
 	_worn[slot] = piece_path
 	_meshes[slot] = meshes
+	_covers[slot] = covers
+	_show_body()
 	outfit_changed.emit(slot)
 	return true
 
@@ -57,6 +66,8 @@ func take_off(slot: String) -> void:
 			mi.queue_free()
 	_worn.erase(slot)
 	_meshes.erase(slot)
+	_covers.erase(slot)
+	_show_body()
 	outfit_changed.emit(slot)
 
 
@@ -72,13 +83,37 @@ func worn_meshes(slot: String) -> Array:
 
 ## The slot a clothing piece fills (its `slot` metadata), or "" if it isn't one.
 static func slot_of(piece_path: String) -> String:
-	var packed := load(piece_path) as PackedScene
+	return str(_meta_of(piece_path, "slot"))
+
+
+## Whether the piece at `piece_path` was made for his body type (#154): its `body_type` metadata names
+## his model's. A piece naming no body type fits nobody.
+func fits(piece_path: String) -> bool:
+	var his := str(_character.get_meta("body_type", "")) if _character != null else ""
+	return his != "" and str(_meta_of(piece_path, "body_type")) == his
+
+
+## Shows each of his body regions (`body_<region>`) unless a worn piece covers it (#153).
+func _show_body() -> void:
+	if _character == null:
+		return
+	var covered := {}
+	for regions: Array in _covers.values():
+		for region in regions:
+			covered[str(region)] = true
+	for mi: MeshInstance3D in _character.find_children("body_*", "MeshInstance3D", true, false):
+		mi.visible = not covered.has(str(mi.name).trim_prefix("body_"))
+
+
+## The `key` metadata of the clothing piece at `piece_path`, or "" if it has none (or can't be loaded).
+static func _meta_of(piece_path: String, key: String) -> Variant:
+	var packed := load(piece_path) as PackedScene if ResourceLoader.exists(piece_path) else null
 	if packed == null:
 		return ""
 	var piece := packed.instantiate()
-	var slot := str(piece.get_meta("slot", ""))
+	var value = piece.get_meta(key, "")
 	piece.free()
-	return slot
+	return value
 
 
 func _find_skeleton() -> Skeleton3D:
