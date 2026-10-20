@@ -8,8 +8,12 @@ extends CharacterBody3D
 signal path_finished
 
 const KNIFE := preload("res://assets/models/props/knife.glb")
-## How far the knife's blade tips forward from the line of his knuckles (1 = 45 degrees), so it points
-## out past his fist at his opponent from his outstretched knife hand (#100).
+## The bone his knife is held on: his right hand in Meshy's rig (#142).
+const KNIFE_HAND := "mixamorig_RightHand"
+## How far the knife's grip sits along his hand from the wrist, in metres: in his palm.
+const KNIFE_GRIP := 0.07
+## How far the knife's blade tips forward from the way his thumb points (1 = 45 degrees), towards his
+## fingertips, so it points out past his hand at his opponent (#100).
 const KNIFE_TILT := 1.5
 ## How much light his skin scatters under its surface (#116): soft, not waxy.
 const SKIN_SCATTER := 0.3
@@ -38,23 +42,22 @@ func _ready() -> void:
 	_soften_skin()
 
 
-## Puts the knife (hidden) in his right hand: on the `hand_r` bone, its grip in the middle of his fist
-## and running along his knuckles, so the blade comes out on the thumb side.
+## Puts the knife (hidden) in his right hand: on the KNIFE_HAND bone, its grip in his palm, the blade
+## coming out on the thumb side. Meshy's rig has no finger bones (#142), so the hand is read from its
+## own bone: it runs (+Y) from the wrist to the fingertips, and at rest his thumb points the way he
+## faces.
 func _attach_knife() -> Node3D:
 	var skeletons := find_children("*", "Skeleton3D", true, false)
 	if skeletons.is_empty():
 		return null
 	var skeleton: Skeleton3D = skeletons[0]
-	var hand := skeleton.find_bone("hand_r")
+	var hand := skeleton.find_bone(KNIFE_HAND)
 	if hand < 0:
 		return null
-	# The knuckles, in the hand bone's own space (they don't move as the fingers curl).
-	var to_hand := skeleton.get_bone_global_rest(hand).affine_inverse()
-	var knuckle := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("middle_01_r")).origin
-	var index := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("index_01_r")).origin
-	var pinky := to_hand * skeleton.get_bone_global_rest(skeleton.find_bone("pinky_01_r")).origin
-	var ahead := knuckle.normalized()
-	var blade := ((index - pinky).normalized() + ahead * KNIFE_TILT).normalized()
+	var ahead := Vector3.UP  # towards his fingertips, in the hand bone's own space
+	var thumb := skeleton.get_bone_global_rest(hand).basis.inverse() * Vector3.MODEL_FRONT
+	thumb = (thumb - ahead * ahead.dot(thumb)).normalized()
+	var blade := (thumb + ahead * KNIFE_TILT).normalized()
 	var edge := (ahead - blade * ahead.dot(blade)).normalized()
 	# On this body rather than in the character, which holds only his own meshes (#66's collision
 	# tests measure them).
@@ -62,11 +65,11 @@ func _attach_knife() -> Node3D:
 	attachment.use_external_skeleton = true
 	add_child(attachment)
 	attachment.external_skeleton = attachment.get_path_to(skeleton)
-	attachment.bone_name = "hand_r"
+	attachment.bone_name = KNIFE_HAND
 	var knife: Node3D = KNIFE.instantiate()
 	knife.name = "Knife"
 	knife.visible = false
-	knife.transform = Transform3D(Basis(blade.cross(edge), blade, edge), knuckle / 2.0)  # the model's blade is its +Y, edge +Z
+	knife.transform = Transform3D(Basis(blade.cross(edge), blade, edge), ahead * KNIFE_GRIP)  # the model's blade is its +Y, edge +Z
 	attachment.add_child(knife)
 	return knife
 

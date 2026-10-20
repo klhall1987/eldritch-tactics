@@ -32,7 +32,8 @@ signal defeat
 const ATTACK_REACH := 1.5
 ## How tall a combatant's body is, for clicking on it (metres).
 const BODY_HEIGHT := 1.8
-## How far through the attacker's `attack` clip the target flinches: as the second blow lands.
+## How far through the attacker's `attack` clip the blow lands and the target flinches, unless the attacker
+## says otherwise with `hit_at` metadata (the player's Meshy hammer swing lands later, #142).
 const HIT_AT := 0.7
 ## The body part that is a combatant's main pool (#122).
 const BODY := "body"
@@ -448,17 +449,16 @@ func _approach_path(enemy: Node3D) -> PackedVector3Array:
 	return walk
 
 
-## The attacker throws its `attack`; on a hit, the target flinches (`hit`) as the second blow lands,
-## HIT_AT of the way through the attack, and the player character's knife opens a cut on it where its
-## slash meets the body (#93, #112) that
-## sprays blood, much more on a critical hit (#94).
+## The attacker throws its `attack`; on a hit, the target flinches (`hit`) as the blow lands, its
+## `hit_at` (or HIT_AT) of the way through the attack, and the player character's knife opens a cut on
+## it where its slash meets the body (#93, #112) that sprays blood, much more on a critical hit (#94).
 ## Enemies settle back into `idle` when a clip finishes (the player's own script picks his stance).
 func _animate_attack(attacker: Node3D, target: Node3D, hit: bool, critical: bool) -> void:
 	if attacker == detective:
 		_blade_path.clear()
 	if not _perform(attacker, &"attack") or not hit:
 		return
-	var delay := _clip_length(attacker, &"attack") * HIT_AT
+	var delay := _clip_length(attacker, &"attack") * float(attacker.get_meta("hit_at", HIT_AT))
 	get_tree().create_timer(delay, false, true).timeout.connect(func():
 		if is_instance_valid(target):
 			_perform(target, &"hit")
