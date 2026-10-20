@@ -45,18 +45,6 @@ confirms for MakeHuman's core assets.
 | `eyelashes/eyelashes01/` | eyelashes01 | his eyelashes |
 | `hair/short02/` | short02 hair | his hair (darkened at build time) |
 
-### Clothes (`makehuman/clothes/`)
-
-The player character's clothes (`art/blender/clothes/outfit.py`), copied unchanged (minus thumbnails)
-from MakeHuman asset packs. Every one is CC0 1.0, as its `.mhclo` header states.
-
-| Folder | Pack (download) | Used for |
-|---|---|---|
-| `toigo_basic_tucked_t-shirt/` | Shirts 01, https://files2.makehumancommunity.org/asset_packs/shirts01/shirts01_cc0.zip | the purple tee (dyed) |
-| `toigo_fisherman_sweater/` | Shirts 01 (as above) | the grey sweater (dyed) |
-| `toigo_wool_pants/` | Pants 01, https://files2.makehumancommunity.org/asset_packs/pants01/pants01_cc0.zip | the blue jeans (dyed denim blue, legs tapered) |
-| `shoes02/` | MakeHuman system assets (as above) | the dark sneakers (darkened) |
-
 ## Creature Creator (the monster)
 
 The monster (`art/blender/characters/monster.py` → `assets/models/characters/monster.glb`) is built

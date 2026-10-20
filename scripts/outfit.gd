@@ -11,12 +11,8 @@ const SLOTS: Array[String] = ["top", "bottom", "feet"]
 
 ## The character model to dress (its Skeleton3D carries the worn pieces).
 @export var character_path: NodePath
-## The pieces he wears when the game starts.
-@export var default_pieces: Array[String] = [
-	"res://assets/models/clothes/tee_purple.glb",
-	"res://assets/models/clothes/jeans_blue.glb",
-	"res://assets/models/clothes/sneakers_dark.glb",
-]
+## The pieces he wears when the game starts (none, since the old MakeHuman clothes went, #141).
+@export var default_pieces: Array[String] = []
 
 var _worn := {}  # slot -> piece path
 var _meshes := {}  # slot -> [MeshInstance3D, ...] drawn on him

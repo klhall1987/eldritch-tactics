@@ -39,8 +39,8 @@ their `.import` files) the first time it imports it: commit those too.
     MakeHuman assets committed under `art/base/makehuman/`: `art/blender/characters/character.py`
     enables MPFB itself (its extension must be installed in Blender), makes the body from MPFB's
     sliders, fits a low-poly body, eyes, brows, lashes and hair on MPFB's game-engine skeleton, and
-    swaps MPFB's materials for plain textured ones that export cleanly. Clothes for him are separate
-    models fitted to the same body and skeleton.
+    swaps MPFB's materials for plain textured ones that export cleanly. (His old MakeHuman clothes went
+    in #141; the Meshy clothes come later.)
   - **The monster is built with the Creature Creator** (CC BY 4.0; see `art/base/README.md`):
     `art/blender/characters/monster.py` opens the owner's Creature Creator file (path in `CREATURE_CREATOR`),
     grows its parts with the tool's `Body Tool`, and exports only the finished, rigged monster.
