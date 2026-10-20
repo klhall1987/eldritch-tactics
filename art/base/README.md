@@ -68,3 +68,24 @@ recoloured, given glowing eyes, and rigged and animated for this game.
 
 Like MPFB, the tool isn't committed here: it's the owner's `creature_creator_v1.blend`, which the build
 script reads from the `CREATURE_CREATOR` path (set in `.claude/settings.local.json`).
+
+## Meshy (the player character and his clothes)
+
+The owner generated the player character's new body and three clothing pieces with **Meshy**
+(https://www.meshy.ai). They aren't CC0: they were made on a paid Meshy plan, so the owner owns them
+("customers on a paid Meshy plan own their Customer Output", Meshy Terms of Use §3.2,
+https://www.meshy.ai/terms-of-use). No credit is required. The terms also say Meshy's AI-generated
+identifiers (watermarks, metadata) must not be removed (§2.4), and that Meshy-made assets must not be
+used to train AI models that compete with Meshy (§2.6).
+
+Like the Creature Creator, they aren't committed here (they're over 100 MB in all): they're the
+owner's files, in the folder the `MESHY` path points to (set in `.claude/settings.local.json`):
+
+| File | What it is |
+|---|---|
+| `Meshy_AI_rigged_male_character_biped/Meshy_AI_rigged_male_character_biped_Meshy_Merged_Animations.fbx` | his body (about 224,000 triangles, 1.75 m), on Meshy's 23-bone Mixamo-style rig with four clips (Walking, Running, air_squat, Block1), and its colour, normal, roughness and metallic maps (`..._texture_0*.png`, 4096 px) next to it |
+| `white_button_down_shi.glb` | a white button-down shirt with rolled sleeves (unrigged, about 535,000 triangles) |
+| `lighter_blue_jeans.glb` | light blue jeans (unrigged, about 560,000 triangles) |
+| `black_trim_tennis_sho.glb` | a pair of light grey tennis shoes with black trim (unrigged, about 1.3 million triangles) |
+
+The clothes come out of Meshy scaled to fit a 1.9 m box, not to his body.
