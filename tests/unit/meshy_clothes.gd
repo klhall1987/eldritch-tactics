@@ -11,7 +11,8 @@ const CHARACTER_PATH := "res://assets/models/characters/character.glb"
 const SAMPLES := 20000
 const CELL := 0.05  # metres: the spatial grid's cell size
 const NEAR := 0.05  # a piece's vertex counts as on his body within this
-const COVERS := 0.08  # a body vertex is in the area a piece covers if one of its vertices is this close
+const COVERS := 0.08  # a body vertex is in the area a piece covers if one of its vertices is this close,
+const ALONG := 30.0  # and within this many degrees of the body vertex's normal line (in front or behind)
 
 
 # The first MeshInstance3D under `node`, or null.
@@ -137,11 +138,36 @@ static func nearest(points: PackedVector3Array, cells: Dictionary, p: Vector3, r
 	return best
 
 
+# The index of the point in `points` (gridded as `cells`) nearest to `p` within `reach` that lies
+# within ALONG degrees of the line through `p` along `normal` (in front of `p` or behind it), or -1.
+static func nearest_along(points: PackedVector3Array, cells: Dictionary, p: Vector3, normal: Vector3, reach: float) -> int:
+	var best := -1
+	var best_d := reach
+	var within := cos(deg_to_rad(ALONG))
+	var c := _cell(p)
+	var span := ceili(reach / CELL)
+	for x in range(-span, span + 1):
+		for y in range(-span, span + 1):
+			for z in range(-span, span + 1):
+				var key := c + Vector3i(x, y, z)
+				if not cells.has(key):
+					continue
+				for i: int in cells[key]:
+					var offset := points[i] - p
+					var d := offset.length()
+					if d < best_d and d > 0.0 and absf(offset.dot(normal)) / d >= within:
+						best_d = d
+						best = i
+	return best
+
+
 # How the piece's mesh `piece` fits his body `body`, both drawn on `skeleton` at rest: {"near": share
 # of the piece's vertices within NEAR of his body's, "covered": how many body vertices lie in the area
-# it covers (a piece vertex within COVERS), "poking": the share of those that poke out through it (the
-# nearest piece vertex lies behind them, along the body's normal)}. With `only_bones`, only body
-# vertices mostly following one of those bones count as covered.
+# it covers (a piece vertex within COVERS, roughly along the body vertex's normal: within ALONG
+# degrees, agreed on #145, so his jaw beside a collar or his forearm past a cuff isn't counted),
+# "poking": the share of those that poke out through it (that piece vertex lies behind them, along the
+# body's normal)}. With `only_bones`, only body vertices mostly following one of those bones count as
+# covered.
 static func fit(piece: MeshInstance3D, body: MeshInstance3D, skeleton: Skeleton3D, only_bones := PackedStringArray()) -> Dictionary:
 	var cloth := drawn(piece, skeleton)
 	var skin := drawn(body, skeleton)
@@ -156,7 +182,7 @@ static func fit(piece: MeshInstance3D, body: MeshInstance3D, skeleton: Skeleton3
 	for i in skin.points.size():
 		if not only_bones.is_empty() and not skin.bones[i] in only_bones:
 			continue
-		var j := nearest(cloth.points, cloth_cells, skin.points[i], COVERS)
+		var j := nearest_along(cloth.points, cloth_cells, skin.points[i], skin.normals[i], COVERS)
 		if j < 0:
 			continue
 		covered += 1

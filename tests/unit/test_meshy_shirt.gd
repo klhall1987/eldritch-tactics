@@ -7,9 +7,10 @@ extends GutTest
 # - A piece names its slot with `slot` metadata on its root (#67, via scripts/clothing_import.gd).
 # - The piece and his body are measured as the Outfit draws them: skinned onto character.glb's skeleton
 #   at rest (tests/unit/meshy_clothes.gd), sampling up to 20,000 vertices of each.
-# - "Fits loosely": of his body's vertices with a shirt vertex within 8 cm (the area it covers), no more
-#   than 5% have the nearest shirt vertex behind them along the body's normal (poking out through it);
-#   and at least 90% of the shirt's vertices are within 5 cm of one of his body's.
+# - "Fits loosely": of his body's vertices with a shirt vertex within 8 cm roughly along their normal
+#   (within 30 degrees, in front or behind: the area it covers, agreed on #145), no more than 5% have
+#   that shirt vertex behind them along the body's normal (poking out through it); and at least 90% of
+#   the shirt's vertices are within 5 cm of one of his body's.
 # - A vertex is "weighted mostly to" the bone with its largest weight. His chest is
 #   `mixamorig_Spine2`, his upper arms `mixamorig_LeftArm` / `mixamorig_RightArm`, his forearms
 #   `mixamorig_LeftForeArm` / `mixamorig_RightForeArm`, his hands `mixamorig_LeftHand` /
