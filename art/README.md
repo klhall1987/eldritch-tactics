@@ -39,13 +39,23 @@ their `.import` files) the first time it imports it: commit those too.
     `art/base/README.md`, "Meshy"): it isn't built from code or held to the triangle budget above.
     The glb is copied unchanged to `assets/models/characters/character.glb`, and
     `scripts/character_import.gd` fits it to the game at import (drops a stray mesh, folds the rig's
-    0.01 scale into the skeleton, names the clips the game plays). His clothes will be Meshy's too.
+    0.01 scale into the skeleton, names the clips the game plays, splits his body into regions).
   - **The monster is built with the Creature Creator** (CC BY 4.0; see `art/base/README.md`):
     `art/blender/characters/monster.py` opens the owner's Creature Creator file (path in `CREATURE_CREATOR`),
     grows its parts with the tool's `Body Tool`, and exports only the finished, rigged monster.
   - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
+- **Body types and the shared skeleton** (#150-#154), as in Baldur's Gate 3: every humanoid
+  character model uses the **shared skeleton** (the player's Meshy rig, imported as 22
+  `mixamorig_*` bones plus `headfront`, with the same parents and rest pose) and is one of the
+  **body types** in `scripts/body_types.gd` (the first is `male_average`, the player). Characters of
+  one body type share the body and skeleton, and differ in head, hair and skin.
+  - **Every clothing piece is made for one body type**, on its skeleton: its glTF extras name its
+    `slot`, its `body_type` and the body regions it `covers` (`scripts/clothing_import.gd` lifts
+    them). The Outfit only puts on a piece made for the character's body type, and hides the body
+    regions it covers (`body_head`, `body_torso`, `body_hips`, `body_upper_arms`, `body_forearms`,
+    `body_hands`, `body_thighs`, `body_calves`, `body_feet`) so skin can't show through.
 - **Units:** 1 Blender unit = 1 m = 1 Godot unit. A human-sized character is about 1.7 m tall.
 - **Origin:** at the feet, centred, on the ground (z = 0 in Blender, y = 0 in Godot).
 - **Facing:** characters face Blender -Y, which is Godot +Z (`Vector3.MODEL_FRONT`).
