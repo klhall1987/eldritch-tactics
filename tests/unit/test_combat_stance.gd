@@ -5,7 +5,7 @@ extends GutTest
 # with the stance went with the old clothes, #141.)
 #
 # Interface these tests choose:
-# - His hands are the skeleton's `mixamorig:LeftHand` and `mixamorig:RightHand` bones (the Meshy rig,
+# - His hands are the skeleton's `mixamorig_LeftHand` and `mixamorig_RightHand` bones (the Meshy rig,
 #   #142); his feet are the lowest bone on each side (as in #65's tests). "Forward" is his +Z
 #   (Vector3.MODEL_FRONT).
 # - "Playing" a clip means the character's AnimationPlayer's `current_animation`.
@@ -145,7 +145,7 @@ func test_character_has_a_combat_idle_guard():
 			assert_lt(moved, 0.02, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
 			if moved >= 0.02:
 				return
-	for hand in ["mixamorig:LeftHand", "mixamorig:RightHand"]:
+	for hand in ["mixamorig_LeftHand", "mixamorig_RightHand"]:
 		var bone := skeleton.find_bone(hand)
 		assert_gte(bone, 0, "his skeleton has %s" % hand)
 		if bone < 0:

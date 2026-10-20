@@ -5,24 +5,25 @@ extends GutTest
 # test_knife_in_hand.gd; criterion 5 is the whole suite.)
 #
 # Interface these tests choose:
-# - Meshy's bones are MESHY_BONES. Height is the vertical extent of his drawn mesh's vertices, in the
-#   character's space.
+# - Meshy's bones are MESHY_BONES, named as Godot imports them: it turns Meshy's `mixamorig:Hips` into
+#   `mixamorig_Hips`, since `:` can't be in a bone name (agreed on #142). Height is the vertical extent
+#   of his drawn mesh's vertices, in the character's space.
 # - "His body is the only mesh drawn": exactly one MeshInstance3D under the character is visible, and
 #   none named `Icosphere` is.
 # - Each clip is told by its length as Meshy made it: Idle_02 2.33 s, Walking 1.04 s, Block1 3.50 s,
 #   Heavy_Hammer_Swing 1.83 s (each within 0.1 s); `hit` is 0.6 s (within 0.05 s) and starts in Block1's
 #   first pose (every bone within 1 cm of combat_idle's at 0 s).
-# - Over walk, his hips (`mixamorig:Hips`) "travel" the horizontal distance between where they are at
+# - Over walk, his hips (`mixamorig_Hips`) "travel" the horizontal distance between where they are at
 #   the start of the clip and at its end.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
 const MESHY_BONES := [
-	"mixamorig:Hips", "mixamorig:Spine", "mixamorig:Spine1", "mixamorig:Spine2", "mixamorig:Neck",
-	"mixamorig:Head", "mixamorig:LeftShoulder", "mixamorig:LeftArm", "mixamorig:LeftForeArm",
-	"mixamorig:LeftHand", "mixamorig:RightShoulder", "mixamorig:RightArm", "mixamorig:RightForeArm",
-	"mixamorig:RightHand", "mixamorig:LeftUpLeg", "mixamorig:LeftLeg", "mixamorig:LeftFoot",
-	"mixamorig:LeftToeBase", "mixamorig:RightUpLeg", "mixamorig:RightLeg", "mixamorig:RightFoot",
-	"mixamorig:RightToeBase",
+	"mixamorig_Hips", "mixamorig_Spine", "mixamorig_Spine1", "mixamorig_Spine2", "mixamorig_Neck",
+	"mixamorig_Head", "mixamorig_LeftShoulder", "mixamorig_LeftArm", "mixamorig_LeftForeArm",
+	"mixamorig_LeftHand", "mixamorig_RightShoulder", "mixamorig_RightArm", "mixamorig_RightForeArm",
+	"mixamorig_RightHand", "mixamorig_LeftUpLeg", "mixamorig_LeftLeg", "mixamorig_LeftFoot",
+	"mixamorig_LeftToeBase", "mixamorig_RightUpLeg", "mixamorig_RightLeg", "mixamorig_RightFoot",
+	"mixamorig_RightToeBase",
 ]
 # clip -> [Meshy's length in seconds, loops]
 const CLIPS := {
@@ -78,7 +79,7 @@ func _files(dir: String) -> PackedStringArray:
 
 
 # Given character.glb, when it's loaded, then it's the Meshy model as delivered: a skeleton with Meshy's
-# bones (mixamorig:Hips through mixamorig:RightHand), at least 200,000 triangles, 1.70-1.80 m tall with
+# bones (mixamorig_Hips through mixamorig_RightHand), at least 200,000 triangles, 1.70-1.80 m tall with
 # his lowest point at y = 0, and his body is the only mesh drawn (Meshy's stray Icosphere isn't).
 func test_the_meshy_model_as_delivered():
 	var character := _character()
@@ -151,8 +152,8 @@ func test_meshy_clips_for_what_the_game_plays():
 	for b in skeleton.get_bone_count():
 		furthest = maxf(furthest, (guard[b] as Vector3).distance_to(flinch[b]))
 	assert_lt(furthest, 0.01, "hit starts in Block1's first pose (bones up to %.3f m apart)" % furthest)
-	var hips := skeleton.find_bone("mixamorig:Hips")
-	assert_ne(hips, -1, "his skeleton has mixamorig:Hips")
+	var hips := skeleton.find_bone("mixamorig_Hips")
+	assert_ne(hips, -1, "his skeleton has mixamorig_Hips")
 	if hips < 0:
 		return
 	var length := player.get_animation("walk").length

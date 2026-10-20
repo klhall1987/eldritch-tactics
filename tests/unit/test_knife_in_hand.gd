@@ -7,7 +7,7 @@ extends GutTest
 #   tip is its furthest point from there. Its materials are named `knife_blade*` and `knife_handle*`.
 # - In the main scene the knife is a node named `Knife` somewhere under `Player` (e.g. on a
 #   BoneAttachment3D); out of combat it is hidden or absent.
-# - "His right hand" is the `mixamorig:RightHand` bone (#142: the Meshy rig has no finger bones, so
+# - "His right hand" is the `mixamorig_RightHand` bone (#142: the Meshy rig has no finger bones, so
 #   there's no fist to measure from and no thumb side).
 
 const KNIFE_PATH := "res://assets/models/props/knife.glb"
@@ -62,7 +62,7 @@ func _bone_at(skeleton: Skeleton3D, name: String) -> Vector3:
 
 
 func _fist(skeleton: Skeleton3D) -> Vector3:
-	return _bone_at(skeleton, "mixamorig:RightHand")
+	return _bone_at(skeleton, "mixamorig_RightHand")
 
 
 func _knife(body: Node) -> Node3D:
