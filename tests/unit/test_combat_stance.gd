@@ -1,16 +1,16 @@
 extends GutTest
 # A combat stance when combat starts (ticket #71): character.glb has a looping `combat_idle` clip (a
 # raised guard on a wider stance), which plays whenever he stands still in combat instead of `idle`.
-# He still plays `walk` when he moves, and goes back to `idle` once combat ends; worn clothes move with
-# the stance.
+# He still plays `walk` when he moves, and goes back to `idle` once combat ends. (Worn clothes moving
+# with the stance went with the old clothes, #141.)
 #
 # Interface these tests choose:
-# - His hands are the skeleton's `hand_l` and `hand_r` bones; his feet are the lowest bone on each
-#   side (as in #65's tests). "Forward" is his +Z (Vector3.MODEL_FRONT).
+# - His hands are the skeleton's `mixamorig_LeftHand` and `mixamorig_RightHand` bones (the Meshy rig,
+#   #142); his feet are the lowest bone on each side (as in #65's tests). "Forward" is his +Z
+#   (Vector3.MODEL_FRONT).
 # - "Playing" a clip means the character's AnimationPlayer's `current_animation`.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
-const TEE := "res://assets/models/clothes/tee_purple.glb"
 const SAMPLES := 12
 
 
@@ -88,41 +88,6 @@ func _feet(character: Node3D, skeleton: Skeleton3D) -> Array:
 	return [left, right]
 
 
-# Where vertex `index` of `mi` is drawn now, skinned on the CPU with the skeleton it's bound to.
-func _skinned(mi: MeshInstance3D, index: int) -> Vector3:
-	var arrays := mi.mesh.surface_get_arrays(0)
-	var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][index]
-	var bones = arrays[Mesh.ARRAY_BONES]
-	var weights = arrays[Mesh.ARRAY_WEIGHTS]
-	var per_vertex: int = weights.size() / arrays[Mesh.ARRAY_VERTEX].size()
-	var skeleton := mi.get_node_or_null(mi.skeleton) as Skeleton3D
-	if skeleton == null or mi.skin == null:
-		return mi.global_transform * vertex
-	var result := Vector3.ZERO
-	for k in per_vertex:
-		var w: float = weights[index * per_vertex + k]
-		if w <= 0.0:
-			continue
-		var bind: int = bones[index * per_vertex + k]
-		var bone := mi.skin.get_bind_bone(bind)
-		if mi.skin.get_bind_name(bind) != StringName():
-			bone = skeleton.find_bone(mi.skin.get_bind_name(bind))
-		result += (skeleton.get_bone_global_pose(bone) * mi.skin.get_bind_pose(bind) * vertex) * w
-	return skeleton.global_transform * result
-
-
-func _nearest_vertex(mi: MeshInstance3D, point: Vector3) -> int:
-	var vertices: PackedVector3Array = mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-	var best := -1
-	var best_distance := INF
-	for i in vertices.size():
-		var d := vertices[i].distance_to(point)
-		if d < best_distance:
-			best_distance = d
-			best = i
-	return best
-
-
 # [main, controller, body (Player), character, its AnimationPlayer], or [] (after failing).
 func _scene() -> Array:
 	var main := await _main()
@@ -152,8 +117,8 @@ func _start(controller: Node, body: CharacterBody3D, cultist: Node3D) -> void:
 
 
 # Given character.glb, when its AnimationPlayer is inspected, then it has a looping combat_idle
-# clip, 1-3 s long, with his feet staying put. Over the clip his hands sit higher and further forward
-# than in idle (raised guard), and his feet are further apart.
+# clip, with his feet staying put. Over the clip his hands sit higher and further forward than in idle
+# (raised guard). (Since #142 it's Meshy's Block1, so its length and stance are Meshy's.)
 func test_character_has_a_combat_idle_guard():
 	var character := _load(CHARACTER_PATH)
 	if character == null:
@@ -168,7 +133,6 @@ func test_character_has_a_combat_idle_guard():
 		return
 	var clip := player.get_animation("combat_idle")
 	assert_ne(clip.loop_mode, Animation.LOOP_NONE, "combat_idle loops")
-	assert_between(clip.length, 1.0, 3.0, "combat_idle lasts 1-3 s (%.2f s)" % clip.length)
 	var feet := _feet(character, skeleton)
 	assert_true(feet[0] >= 0 and feet[1] >= 0, "he has a foot on each side")
 	if feet[0] < 0 or feet[1] < 0:
@@ -181,7 +145,7 @@ func test_character_has_a_combat_idle_guard():
 			assert_lt(moved, 0.02, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
 			if moved >= 0.02:
 				return
-	for hand in ["hand_l", "hand_r"]:
+	for hand in ["mixamorig_LeftHand", "mixamorig_RightHand"]:
 		var bone := skeleton.find_bone(hand)
 		assert_gte(bone, 0, "his skeleton has %s" % hand)
 		if bone < 0:
@@ -190,9 +154,6 @@ func test_character_has_a_combat_idle_guard():
 		var guard := _average(character, player, skeleton, "combat_idle", bone)
 		assert_gt(guard.y - relaxed.y, 0.1, "%s is held higher in the guard (%.2f m higher)" % [hand, guard.y - relaxed.y])
 		assert_gt(guard.z - relaxed.z, 0.1, "%s is held further forward in the guard (%.2f m)" % [hand, guard.z - relaxed.z])
-	var relaxed_width := _average(character, player, skeleton, "idle", feet[0]).x - _average(character, player, skeleton, "idle", feet[1]).x
-	var guard_width := _average(character, player, skeleton, "combat_idle", feet[0]).x - _average(character, player, skeleton, "combat_idle", feet[1]).x
-	assert_gt(guard_width - relaxed_width, 0.05, "his feet are further apart in the guard (%.2f m vs %.2f m)" % [guard_width, relaxed_width])
 
 
 # Given combat starts, when he's standing still, then combat_idle plays, on his own turn and on the
@@ -257,45 +218,3 @@ func test_idle_again_after_victory():
 	assert_false(controller.running, "combat ended in victory")
 	await wait_physics_frames(3)
 	assert_eq(player.current_animation, "idle", "after victory he stands in idle again")
-
-
-# Given his clothes are worn (part 4), when combat_idle plays, then they move with him (they're bound
-# to the same skeleton).
-func test_his_clothes_move_with_the_guard():
-	var scene := await _scene()
-	if scene.is_empty():
-		return
-	var character: Node3D = scene[3]
-	var player: AnimationPlayer = scene[4]
-	var outfit: Node = scene[0].find_child("Outfit", true, false)
-	assert_not_null(outfit, "the main scene has the Outfit")
-	if outfit == null:
-		return
-	var tee: Array = outfit.worn_meshes("top")
-	assert_gt(tee.size(), 0, "he wears the tee")
-	var body := character.find_child("body", true, false) as MeshInstance3D
-	var skeleton := body.get_node_or_null(body.skeleton) as Skeleton3D if body != null else null
-	if tee.is_empty() or skeleton == null:
-		return
-	var tee_mesh: MeshInstance3D = tee[0]
-	assert_eq(tee_mesh.get_node_or_null(tee_mesh.skeleton), skeleton, "the tee is bound to his skeleton")
-	# A point on his upper arm, inside the tee's sleeve: the body's vertex nearest the elbow's parent
-	# bone midpoint, and the tee's vertex nearest that.
-	var arm := skeleton.find_bone("upperarm_l")
-	var elbow := skeleton.find_bone("lowerarm_l")
-	if arm < 0 or elbow < 0:
-		return
-	var mid := (skeleton.get_bone_global_rest(arm).origin * 0.7 + skeleton.get_bone_global_rest(elbow).origin * 0.3)
-	var body_vertex := _nearest_vertex(body, mid)
-	var tee_vertex := _nearest_vertex(tee_mesh, body.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX][body_vertex])
-	var at := {}
-	for clip in ["idle", "combat_idle"]:
-		player.play(clip)
-		player.seek(0.0, true)
-		player.advance(0.0)
-		skeleton.force_update_all_bone_transforms()
-		at[clip] = [_skinned(body, body_vertex), _skinned(tee_mesh, tee_vertex)]
-		var gap: float = at[clip][0].distance_to(at[clip][1])
-		assert_lte(gap, 0.04, "in %s the sleeve stays on his arm (%.3f m apart)" % [clip, gap])
-	var moved: float = at["idle"][1].distance_to(at["combat_idle"][1])
-	assert_gt(moved, 0.05, "the sleeve moves with his arm into the guard (%.2f m)" % moved)

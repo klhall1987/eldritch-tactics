@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cakn5d2gvp5cu"
-path.s3tc="res://.godot/imported/sneakers_dark_shoes02_diffuse_dark.png-f7a15327350642f5a0a1199c77704479.s3tc.ctex"
+uid="uid://bw4x3s4ayvlrt"
+path.s3tc="res://.godot/imported/character_texture_0.png-cbc3d90adc5cd60b78e2d02028e36aac.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "f066c76f38c388ca90145ab3fa7b61c1"
+"md5": "a5eb8ff9d340d094f440330aab59de64"
 }
 
 [deps]
 
-source_file="res://assets/models/clothes/sneakers_dark_shoes02_diffuse_dark.png"
-dest_files=["res://.godot/imported/sneakers_dark_shoes02_diffuse_dark.png-f7a15327350642f5a0a1199c77704479.s3tc.ctex"]
+source_file="res://assets/models/characters/character_texture_0.png"
+dest_files=["res://.godot/imported/character_texture_0.png-cbc3d90adc5cd60b78e2d02028e36aac.s3tc.ctex"]
 
 [params]
 

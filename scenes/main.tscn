@@ -13,10 +13,6 @@
 [ext_resource type="Script" path="res://scripts/combat_hud.gd" id="11_hud"]
 [ext_resource type="Script" path="res://scripts/outfit.gd" id="12_outfit"]
 [ext_resource type="Script" path="res://scripts/inventory.gd" id="13_inventory"]
-[ext_resource type="Resource" path="res://assets/items/tee_purple.tres" id="14_tee"]
-[ext_resource type="Resource" path="res://assets/items/jeans_blue.tres" id="15_jeans"]
-[ext_resource type="Resource" path="res://assets/items/sneakers_dark.tres" id="16_sneakers"]
-[ext_resource type="Resource" path="res://assets/items/sweater_grey.tres" id="17_sweater"]
 [ext_resource type="Script" path="res://scripts/inventory_screen.gd" id="18_inventory_screen"]
 [ext_resource type="Script" path="res://scripts/turn_rings.gd" id="20_turn_rings"]
 
@@ -69,6 +65,7 @@ metadata/defence = 2
 metadata/weapon_damage = 1
 metadata/body_radius = 0.25
 metadata/max_hit_points = 20
+metadata/hit_at = 0.82
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1559143384]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -82,7 +79,7 @@ character_path = NodePath("../Character")
 
 [node name="Inventory" type="Node" parent="Player"]
 script = ExtResource("13_inventory")
-items = Array[Resource]([ExtResource("14_tee"), ExtResource("15_jeans"), ExtResource("16_sneakers"), ExtResource("17_sweater")])
+items = Array[Resource]([])
 outfit_path = NodePath("../Outfit")
 controller_path = NodePath("../../CombatController")
 
