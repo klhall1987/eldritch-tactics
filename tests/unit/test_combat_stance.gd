@@ -5,8 +5,9 @@ extends GutTest
 # with the stance went with the old clothes, #141.)
 #
 # Interface these tests choose:
-# - His hands are the skeleton's `hand_l` and `hand_r` bones; his feet are the lowest bone on each
-#   side (as in #65's tests). "Forward" is his +Z (Vector3.MODEL_FRONT).
+# - His hands are the skeleton's `mixamorig:LeftHand` and `mixamorig:RightHand` bones (the Meshy rig,
+#   #142); his feet are the lowest bone on each side (as in #65's tests). "Forward" is his +Z
+#   (Vector3.MODEL_FRONT).
 # - "Playing" a clip means the character's AnimationPlayer's `current_animation`.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
@@ -116,8 +117,8 @@ func _start(controller: Node, body: CharacterBody3D, cultist: Node3D) -> void:
 
 
 # Given character.glb, when its AnimationPlayer is inspected, then it has a looping combat_idle
-# clip, 1-3 s long, with his feet staying put. Over the clip his hands sit higher and further forward
-# than in idle (raised guard), and his feet are further apart.
+# clip, with his feet staying put. Over the clip his hands sit higher and further forward than in idle
+# (raised guard). (Since #142 it's Meshy's Block1, so its length and stance are Meshy's.)
 func test_character_has_a_combat_idle_guard():
 	var character := _load(CHARACTER_PATH)
 	if character == null:
@@ -132,7 +133,6 @@ func test_character_has_a_combat_idle_guard():
 		return
 	var clip := player.get_animation("combat_idle")
 	assert_ne(clip.loop_mode, Animation.LOOP_NONE, "combat_idle loops")
-	assert_between(clip.length, 1.0, 3.0, "combat_idle lasts 1-3 s (%.2f s)" % clip.length)
 	var feet := _feet(character, skeleton)
 	assert_true(feet[0] >= 0 and feet[1] >= 0, "he has a foot on each side")
 	if feet[0] < 0 or feet[1] < 0:
@@ -145,7 +145,7 @@ func test_character_has_a_combat_idle_guard():
 			assert_lt(moved, 0.02, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
 			if moved >= 0.02:
 				return
-	for hand in ["hand_l", "hand_r"]:
+	for hand in ["mixamorig:LeftHand", "mixamorig:RightHand"]:
 		var bone := skeleton.find_bone(hand)
 		assert_gte(bone, 0, "his skeleton has %s" % hand)
 		if bone < 0:
@@ -154,9 +154,6 @@ func test_character_has_a_combat_idle_guard():
 		var guard := _average(character, player, skeleton, "combat_idle", bone)
 		assert_gt(guard.y - relaxed.y, 0.1, "%s is held higher in the guard (%.2f m higher)" % [hand, guard.y - relaxed.y])
 		assert_gt(guard.z - relaxed.z, 0.1, "%s is held further forward in the guard (%.2f m)" % [hand, guard.z - relaxed.z])
-	var relaxed_width := _average(character, player, skeleton, "idle", feet[0]).x - _average(character, player, skeleton, "idle", feet[1]).x
-	var guard_width := _average(character, player, skeleton, "combat_idle", feet[0]).x - _average(character, player, skeleton, "combat_idle", feet[1]).x
-	assert_gt(guard_width - relaxed_width, 0.05, "his feet are further apart in the guard (%.2f m vs %.2f m)" % [guard_width, relaxed_width])
 
 
 # Given combat starts, when he's standing still, then combat_idle plays, on his own turn and on the
