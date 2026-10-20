@@ -98,7 +98,9 @@ static func cut(target: Node3D, attacker: Node3D, slash: Array, slash_from: floa
 		var surface: Vector3 = skin[0] if not skin.is_empty() else on_line
 		# Along the line exactly, out from the skin by where the skin is.
 		ribbon.append(to_wound * (on_line + toward * ((surface - on_line).dot(toward) + 0.006)))
-	if ribbon.size() < 2:  # the slash only grazed its edge: a short straight cut there
+	# The slash only grazed its edge (what's left of the line on its body is shorter than SHORTEST): a
+	# short straight cut there.
+	if ribbon.size() < 2 or ribbon[-1].distance_to(ribbon[0]) < SHORTEST:
 		ribbon = PackedVector3Array([Vector3(-SHORTEST / 2.0, 0, 0), Vector3(SHORTEST / 2.0, 0, 0)])
 	wound.add_child(_gash("Lips", ribbon, 0.022, FLESH, 0.0))
 	wound.add_child(_gash("Depth", _inset(ribbon, 0.85), 0.008, DEPTH, 0.002))

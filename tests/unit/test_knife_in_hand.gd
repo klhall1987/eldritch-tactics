@@ -7,9 +7,8 @@ extends GutTest
 #   tip is its furthest point from there. Its materials are named `knife_blade*` and `knife_handle*`.
 # - In the main scene the knife is a node named `Knife` somewhere under `Player` (e.g. on a
 #   BoneAttachment3D); out of combat it is hidden or absent.
-# - "His right hand" is the middle of his fist: halfway between the `hand_r` bone (the wrist) and
-#   `middle_01_r` (the knuckle). The thumb side of the fist is where `index_01_r` is; the other side is
-#   `pinky_01_r`.
+# - "His right hand" is the `mixamorig_RightHand` bone (#142: the Meshy rig has no finger bones, so
+#   there's no fist to measure from and no thumb side).
 
 const KNIFE_PATH := "res://assets/models/props/knife.glb"
 const SAMPLES := 12
@@ -63,7 +62,7 @@ func _bone_at(skeleton: Skeleton3D, name: String) -> Vector3:
 
 
 func _fist(skeleton: Skeleton3D) -> Vector3:
-	return (_bone_at(skeleton, "hand_r") + _bone_at(skeleton, "middle_01_r")) / 2.0
+	return _bone_at(skeleton, "mixamorig_RightHand")
 
 
 func _knife(body: Node) -> Node3D:
@@ -143,8 +142,7 @@ func test_knife_model():
 
 
 # Given combat has started, when he stands in combat_idle, then the knife is visible, its grip is
-# within 0.05 m of his right hand, and its tip is at least 0.15 m from it, on the thumb side of his
-# fist.
+# within 0.1 m of his right hand, and its tip is at least 0.15 m from it.
 func test_he_draws_the_knife_in_combat():
 	var scene := await _scene()
 	if scene.is_empty():
@@ -163,13 +161,10 @@ func test_he_draws_the_knife_in_combat():
 		return
 	var fist := _fist(skeleton)
 	var grip := knife.global_position.distance_to(fist)
-	assert_lte(grip, 0.05, "the knife's grip is in his right hand (%.3f m from it)" % grip)
+	assert_lte(grip, 0.1, "the knife's grip is in his right hand (%.3f m from it)" % grip)
 	var tip := _tip(knife)
 	var reach := tip.distance_to(fist)
 	assert_gte(reach, 0.15, "the blade sticks out of his fist (tip %.3f m from it)" % reach)
-	var thumb_side := tip.distance_to(_bone_at(skeleton, "index_01_r"))
-	var other_side := tip.distance_to(_bone_at(skeleton, "pinky_01_r"))
-	assert_lt(thumb_side, other_side, "the blade comes out on the thumb side (%.3f m from the index knuckle vs %.3f m from the pinky's)" % [thumb_side, other_side])
 
 
 # Given combat is running, when combat_idle is sampled over the whole clip, then the knife stays in
@@ -194,8 +189,8 @@ func test_the_knife_stays_in_his_hand():
 		player.seek(length * i / SAMPLES, true)
 		await wait_process_frames(1)
 		var grip := knife.global_position.distance_to(_fist(skeleton))
-		assert_lte(grip, 0.05, "at %.2f s the knife is still in his hand (%.3f m from it)" % [player.current_animation_position, grip])
-		if grip > 0.05:
+		assert_lte(grip, 0.1, "at %.2f s the knife is still in his hand (%.3f m from it)" % [player.current_animation_position, grip])
+		if grip > 0.1:
 			return
 
 

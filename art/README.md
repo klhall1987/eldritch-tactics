@@ -35,12 +35,11 @@ their `.import` files) the first time it imports it: commit those too.
     must be CC0 (or as free), approved by the owner, committed under `art/base/` and recorded in
     its README; scripts never download anything. Pass `preview_colors="TEXTURE"` to `kit.export()`
     so the previews show the textures. The cultist is built this way.
-  - **The player character is built with MPFB** (the MakeHuman plugin for Blender), from CC0
-    MakeHuman assets committed under `art/base/makehuman/`: `art/blender/characters/character.py`
-    enables MPFB itself (its extension must be installed in Blender), makes the body from MPFB's
-    sliders, fits a low-poly body, eyes, brows, lashes and hair on MPFB's game-engine skeleton, and
-    swaps MPFB's materials for plain textured ones that export cleanly. (His old MakeHuman clothes went
-    in #141; the Meshy clothes come later.)
+  - **The player character is the owner's Meshy model, used as Meshy delivered it** (#142; see
+    `art/base/README.md`, "Meshy"): it isn't built from code or held to the triangle budget above.
+    The glb is copied unchanged to `assets/models/characters/character.glb`, and
+    `scripts/character_import.gd` fits it to the game at import (drops a stray mesh, folds the rig's
+    0.01 scale into the skeleton, names the clips the game plays). His clothes will be Meshy's too.
   - **The monster is built with the Creature Creator** (CC BY 4.0; see `art/base/README.md`):
     `art/blender/characters/monster.py` opens the owner's Creature Creator file (path in `CREATURE_CREATOR`),
     grows its parts with the tool's `Body Tool`, and exports only the finished, rigged monster.
