@@ -51,8 +51,10 @@ triangles, 1.75 m tall, one 4096 px colour texture, on Meshy's 23-bone Mixamo-st
 bones; Godot imports `mixamorig:Hips` as `mixamorig_Hips`), with six clips (Idle_02, Walking, Running,
 Heavy_Hammer_Swing, Block1, air_squat). `scripts/character_import.gd` fits it to the game at import.
 
-**The clothes** aren't in the game yet. They're the owner's files, in the folder the `MESHY` path
-points to (set in `.claude/settings.local.json`):
+**The clothes** are the owner's files, in the folder the `MESHY` path points to (set in
+`.claude/settings.local.json`). `art/blender/clothes/meshy_clothes.py` makes each wearable (#145-#147),
+keeping its mesh and texture: it scales and places it over his body, bends its limbs onto his, pushes it
+out by up to 2 cm where his body would show through, and skins it to his skeleton.
 
 | File | What it is |
 |---|---|
