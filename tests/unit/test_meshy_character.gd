@@ -8,8 +8,8 @@ extends GutTest
 # - Meshy's bones are MESHY_BONES, named as Godot imports them: it turns Meshy's `mixamorig:Hips` into
 #   `mixamorig_Hips`, since `:` can't be in a bone name (agreed on #142). Height is the vertical extent
 #   of his drawn mesh's vertices, in the character's space.
-# - "His body is the only mesh drawn": exactly one MeshInstance3D under the character is visible, and
-#   none named `Icosphere` is.
+# - "His body is the only mesh drawn": every visible MeshInstance3D under the character is one of his
+#   body's region meshes, named `body_<region>` (since #151), and none named `Icosphere` is.
 # - Each clip is told by its length as Meshy made it: Idle_02 2.33 s, Walking 1.04 s, Block1 3.50 s,
 #   Heavy_Hammer_Swing 1.83 s (each within 0.1 s); `hit` is 0.6 s (within 0.05 s) and starts in Block1's
 #   first pose (every bone within 1 cm of combat_idle's at 0 s).
@@ -81,6 +81,8 @@ func _files(dir: String) -> PackedStringArray:
 # Given character.glb, when it's loaded, then it's the Meshy model as delivered: a skeleton with Meshy's
 # bones (mixamorig_Hips through mixamorig_RightHand), at least 200,000 triangles, 1.70-1.80 m tall with
 # his lowest point at y = 0, and his body is the only mesh drawn (Meshy's stray Icosphere isn't).
+# (Changed by #151, as its ticket says: his body is now nine region meshes, `body_<region>`, so only
+# those are drawn, and the triangles are counted over all of them.)
 func test_the_meshy_model_as_delivered():
 	var character := _character()
 	if character == null:
@@ -93,7 +95,9 @@ func test_the_meshy_model_as_delivered():
 	for bone: String in MESHY_BONES:
 		assert_ne(skeleton.find_bone(bone), -1, "his skeleton has Meshy's %s" % bone)
 	var drawn := _drawn(character)
-	assert_eq(drawn.size(), 1, "one mesh is drawn, his body (%s)" % [drawn.map(func(mi): return mi.name)])
+	assert_gt(drawn.size(), 0, "his body is drawn")
+	for mi: MeshInstance3D in drawn:
+		assert_true(str(mi.name).begins_with("body_"), "only his body's region meshes are drawn (found %s)" % mi.name)
 	for mi: MeshInstance3D in character.find_children("*", "MeshInstance3D", true, false):
 		assert_false(mi.name.begins_with("Icosphere") and mi.is_visible_in_tree(), "Meshy's Icosphere isn't drawn")
 	if drawn.is_empty():
