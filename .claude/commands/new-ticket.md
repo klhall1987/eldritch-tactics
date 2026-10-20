@@ -120,4 +120,5 @@ ask separate questions or offer "defaults": the drafts I see are exactly what ge
    ```
 
    Work through it top to bottom: each ticket goes through `/write-tests` and `/implement`
-   before the next. Say that `/write-tests <first N>` is next.
+   before the next. Say that `/write-tests <first N>` is next, or, for a queue of related tickets,
+   `/feature <all the Ns, in order>` to build them as one feature in one PR.
