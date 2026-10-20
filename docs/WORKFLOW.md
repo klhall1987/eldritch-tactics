@@ -40,25 +40,30 @@ and lists the queue with issue numbers.
 
 There are three ways to work a ticket, from most to least hands-on.
 
-### Many tickets: `/tickets <N> <N> ...`
+### A feature: `/feature <N> <N> ...`
 
-Works the listed tickets **in the order given**, each one the `/ticket` way (below), and this time
-Claude commits, pushes and opens the PRs itself. The PRs are **stacked**:
+Works several **related** tickets (usually one `/new-ticket` queue) as one feature, in the order
+given, and this time Claude commits, pushes and opens the PR itself: **one PR for all of them**, on
+one branch, `feature-<slug>`, with a commit per ticket.
 
-```
-main ← ticket-45-… ← ticket-46-… ← ticket-47-…
-```
+To spend less time waiting on tests, the work goes in batches rather than ticket by ticket:
 
-The first ticket branches from `main` and its PR targets `main`. Each later ticket branches from the
-previous ticket's branch and its PR targets that branch, so it shows only that ticket's changes.
-Claude stops at the first ticket that needs clarification or can't be finished, and tells you where
-the stack ended.
+1. **Tests:** Claude writes the failing tests for every ticket, runs them all once to check each fails
+   for the right reason, freezes them (a fingerprint of `tests/`) and commits them, one commit per
+   ticket.
+2. **Implementations:** it builds every ticket in order without running the suite in between. It only
+   runs a ticket's own tests early when the work needs a result, such as a model it has just built.
+3. **Verify:** it runs the feature's tests together, fixes until they pass, then runs the full suite
+   and the smoke test once, and checks the fingerprint still matches.
 
-To merge a stack, merge the bottom PR into `main` first. GitHub then retargets the next PR at `main`
-(if the branch is deleted on merge; otherwise change its base by hand), and so on up the stack.
-Use **merge commits**, not squash: squashing rewrites the commits the next PR is built on.
-If you ask for changes in a lower PR, re-run `/implement <N>` for it, then merge its branch into the
-PRs above.
+The PR has one `Closes #<N>` line per ticket, so merging it closes them all, plus each ticket's
+criteria-to-tests table, its tests' choices and its failing-then-passing evidence. Merge it into
+`main` with a merge commit to keep the per-ticket commits.
+
+Claude stops if a ticket needs clarification, or can't be made to pass. Nothing is pushed until the
+whole feature passes, so a stopped run leaves only the local `feature-<slug>` branch, with the tests
+committed and the implementation uncommitted. Answer on the issue and run the same `/feature`
+command again to carry on from there.
 
 This is the only command that commits or pushes. It never pushes to `main`, never force-pushes and
 never merges.
@@ -82,8 +87,8 @@ never merges.
 | 5 | Review, commit and push, mark the PR ready, apply `ready-for-review` once CI is green. Merge, or comment and re-run `/implement <N>` | |
 
 If `/new-ticket` made a queue, work it top to bottom. `/write-tests` and `/ticket` check that a
-ticket's dependency is merged first, and ask you if it isn't. `/tickets` doesn't need to: it stacks
-each ticket on the one before.
+ticket's dependency is merged first, and ask you if it isn't. `/feature` doesn't need to: it builds
+each ticket on the ones before, on the same branch.
 
 The commands are in `.claude/commands/`. Shared rules for every phase are in `CLAUDE.md`.
 Edit either to tune how Claude works.
@@ -95,8 +100,8 @@ merging is the approval. These keep the tests honest:
 
 | Rule | Enforced by |
 |---|---|
-| Tests are written before the code, and fail first | `/ticket` and `/tickets` record each new test's failure message in the PR |
-| Tests aren't changed to fit the code | `/ticket` and `/tickets` fingerprint `tests/` after writing them and check it still matches after implementing; `/implement` never touches `tests/` |
+| Tests are written before the code, and fail first | `/ticket` and `/feature` record each new test's failure message in the PR |
+| Tests aren't changed to fit the code | `/ticket` and `/feature` fingerprint `tests/` after writing them and check it still matches after implementing; `/implement` never touches `tests/` |
 | A ticket never changes the test harness | `tools/ticket_guard.sh protected` (`addons/gut/`, `.gutconfig.json`, `tools/`, `.github/`) |
 | Writing tests changes only `tests/` | `tools/ticket_guard.sh tests-only` |
 | Every PR passes the tests and the smoke run | The required `godot-checks` check (`.github/workflows/ci.yml`) |

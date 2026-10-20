@@ -25,7 +25,7 @@ Protect `main` (Settings > Branches): require a pull request and the `godot-chec
 
 Work is tracked as small Feature issues, each moving through status labels. The AI work runs
 locally in Claude Code: `/new-ticket <what you want>` to file tickets, then `/ticket <N>` for one
-ticket, or `/tickets <N> <N> ...` to work a list of them in order, as stacked PRs.
+ticket, or `/feature <N> <N> ...` to work several related tickets as one feature, in one PR.
 See [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
 ## Layout
