@@ -47,8 +47,8 @@ their `.import` files) the first time it imports it: commit those too.
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
 - **Body types and the shared skeleton** (#150-#154), as in Baldur's Gate 3: every humanoid
-  character model uses the **shared skeleton** (the player's Meshy rig, imported as 22
-  `mixamorig_*` bones plus `headfront`, with the same parents and rest pose) and is one of the
+  character model uses the **shared skeleton** (the player's dressed Meshy rig, #158: 22 bones from
+  `Hips` to `RightToeBase` plus `head_end` and `headfront`, with the same parents and rest pose) and is one of the
   **body types** in `scripts/body_types.gd` (the first is `male_average`, the player). Characters of
   one body type share the body and skeleton, and differ in head, hair and skin.
   - **Every clothing piece is made for one body type**, on its skeleton: its glTF extras name its

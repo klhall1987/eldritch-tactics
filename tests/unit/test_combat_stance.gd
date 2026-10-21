@@ -5,8 +5,8 @@ extends GutTest
 # with the stance went with the old clothes, #141.)
 #
 # Interface these tests choose:
-# - His hands are the skeleton's `mixamorig_LeftHand` and `mixamorig_RightHand` bones (the Meshy rig,
-#   #142); his feet are the lowest bone on each side (as in #65's tests). "Forward" is his +Z
+# - His hands are the skeleton's `LeftHand` and `RightHand` bones (the dressed Meshy rig,
+#   #157); his feet are the lowest bone on each side (as in #65's tests). "Forward" is his +Z
 #   (Vector3.MODEL_FRONT).
 # - "Playing" a clip means the character's AnimationPlayer's `current_animation`.
 
@@ -119,6 +119,8 @@ func _start(controller: Node, body: CharacterBody3D, cultist: Node3D) -> void:
 # Given character.glb, when its AnimationPlayer is inspected, then it has a looping combat_idle
 # clip, with his feet staying put. Over the clip his hands sit higher and further forward than in idle
 # (raised guard). (Since #142 it's Meshy's Block1, so its length and stance are Meshy's.)
+# (Since #157 it's Block1 as Meshy delivered it, whose feet shift by themselves up to 0.020 m, so "staying
+# put" is within 0.025 m, agreed on #157.)
 func test_character_has_a_combat_idle_guard():
 	var character := _load(CHARACTER_PATH)
 	if character == null:
@@ -142,10 +144,10 @@ func test_character_has_a_combat_idle_guard():
 		var pose := _pose_at(character, player, skeleton, "combat_idle", clip.length * i / SAMPLES)
 		for foot: int in feet:
 			var moved: float = pose[foot].distance_to(start[foot])
-			assert_lt(moved, 0.02, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
-			if moved >= 0.02:
+			assert_lt(moved, 0.025, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
+			if moved >= 0.025:
 				return
-	for hand in ["mixamorig_LeftHand", "mixamorig_RightHand"]:
+	for hand in ["LeftHand", "RightHand"]:
 		var bone := skeleton.find_bone(hand)
 		assert_gte(bone, 0, "his skeleton has %s" % hand)
 		if bone < 0:

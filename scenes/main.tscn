@@ -65,7 +65,7 @@ metadata/defence = 2
 metadata/weapon_damage = 1
 metadata/body_radius = 0.25
 metadata/max_hit_points = 20
-metadata/hit_at = 0.82
+metadata/hit_at = 0.61
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1559143384]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

@@ -70,6 +70,12 @@ static func cut(target: Node3D, attacker: Node3D, slash: Array, slash_from: floa
 		crossed_lo = minf(crossed_lo, lerpf(a.x, b.x, minf(t0, t1)))
 		crossed_hi = maxf(crossed_hi, lerpf(a.x, b.x, maxf(t0, t1)))
 	var side := (crossed_lo + crossed_hi) / 2.0 if swept > 0.0 else tip.dot(across)
+	# The whole cut stays on the part of its body the slash crossed (agreed on #158): its centre moves in
+	# from the edge just far enough that the slanted cut fits between the body's edges, so it isn't
+	# trimmed short (a slash coming down near the edge would run its ends off the side).
+	var reach := absf(moving.normalized().x) * maxf(swept, SHORTEST) / 2.0
+	if left + reach <= right - reach:
+		side = clampf(side, left + reach, right - reach)
 	side = clampf(side, left, right) - centre.dot(across)
 	var height := clampf(tip.y, low, high)
 	# A second cut in the same place steps just below the last.
@@ -90,8 +96,11 @@ static func cut(target: Node3D, attacker: Node3D, slash: Array, slash_from: floa
 	var x := wound.global_basis.x.normalized()
 	var to_wound := wound.global_transform.affine_inverse()
 	var ribbon := PackedVector3Array()
+	# The line runs through the skin point found, moved across to where the cut was centred (the skin
+	# point nearest may lie further out than that).
+	var middle: Vector3 = found[0] + across * (side + centre.dot(across) - found[0].dot(across))
 	for i in RIBBON_POINTS:
-		var on_line: Vector3 = found[0] + x * (float(i) / (RIBBON_POINTS - 1) - 0.5) * length
+		var on_line: Vector3 = middle + x * (float(i) / (RIBBON_POINTS - 1) - 0.5) * length
 		if on_line.dot(across) < left or on_line.dot(across) > right:
 			continue  # past the edge of its body
 		var skin := _front_point(body, centre, toward, across, on_line.y, (on_line - centre).dot(across))

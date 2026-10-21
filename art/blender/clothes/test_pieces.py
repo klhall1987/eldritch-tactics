@@ -91,7 +91,7 @@ def skin_reach(body, rig, bone):
 
 def tube(bm, body, rig, bone, span, offset, group):
     """A tube round `bone` over `span` of its length, each vertex `offset` out from his skin in its
-    direction (as far as his skin reaches there, near that ring), its vertices in `group`."""
+    direction (the middle of how far his skin reaches there, near that ring), its vertices in `group`."""
     head, tail, along, side, front = frame(rig, bone)
     reach = skin_reach(body, rig, bone)
     deform = bm.verts.layers.deform.verify()
@@ -105,7 +105,7 @@ def tube(bm, body, rig, bone, span, offset, group):
             a = 2 * math.pi * s / SEGMENTS
             turn = np.abs((near[:, 1] - a + math.pi) % (2 * math.pi) - math.pi)
             there = near[turn < math.pi / SEGMENTS * 1.5, 2]
-            radius = (float(there.max()) if len(there) else float(np.median(near[:, 2]))) + offset
+            radius = (float(np.median(there)) if len(there) else float(np.median(near[:, 2]))) + offset
             v = bm.verts.new(centre + (side * math.cos(a) + front * math.sin(a)) * radius)
             v[deform][group] = 1.0
             ring.append(v)
@@ -122,7 +122,7 @@ def build(name, slot, body_type, covers, span, offset, colour):
     piece = bpy.data.objects.new(name, bpy.data.meshes.new(name))
     bpy.context.scene.collection.objects.link(piece)
     bm = bmesh.new()
-    for bone in ("mixamorig:LeftArm", "mixamorig:RightArm"):
+    for bone in ("LeftArm", "RightArm"):
         group = piece.vertex_groups.new(name=bone).index
         tube(bm, body, rig, bone, span, offset, group)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])

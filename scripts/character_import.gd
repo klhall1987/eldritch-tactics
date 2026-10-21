@@ -6,34 +6,50 @@ extends EditorScenePostImport
 ## metal on its material (so he's lit by the scene, not glowing), folds the 0.01 scale on
 ## Meshy's armature into the skeleton (its bones are in centimetres, cancelled out by its bind poses, so
 ## he's drawn the same but everything under him now measures in metres), names Meshy's clips for what
-## the game plays (the stances and the walk loop), and cuts `hit` from the start of Block1, as his hands
-## come up to cover, since Meshy made no hit reaction. It names his body type (#150) and splits his body
-## into the regions clothes can hide (#151).
+## the game plays (the stances and the walk loop) and keeps them in place, and adds the clips Meshy
+## delivered in files of their own: the walk, a relaxed idle and a raised guard (EXTRA_CLIPS). It names his body type
+## (#150) and splits his body into the regions clothes can hide (#151). Since #157 he's the owner's
+## dressed Meshy character.
 
 ## Game clip -> [Meshy's clip, loops].
 const CLIPS := {
-	"idle": ["Idle_02", true],
-	"walk": ["Walking", true],
-	"combat_idle": ["Block1", true],
-	"attack": ["Heavy_Hammer_Swing", false],
+	"idle": [IDLE_CLIP, true],
+	"walk": [WALK_CLIP, true],
+	"combat_idle": [GUARD_CLIP, true],
+	"attack": ["Right_Hand_Sword_Slash", false],
+	"hit": ["Hit_Reaction", false],
 }
-## `hit` is the first HIT_LENGTH seconds of HIT_FROM, played once.
-const HIT_FROM := "Block1"
-const HIT_LENGTH := 0.6
+## Clips Meshy delivered in glbs of their own, on the same rig (the walk from its rigging, and a relaxed
+## idle and a raised guard, Block1, both agreed on #157, since the main file's idle holds his hands up
+## and its Combat_Stance crouches with them low): each file is kept as delivered,
+## imported as-is ("keep"), and its clip is read from it here. Clip name -> file.
+const WALK_CLIP := "walking"
+const IDLE_CLIP := "relaxed_idle"
+const GUARD_CLIP := "guard"
+const EXTRA_CLIPS := {
+	WALK_CLIP: "res://assets/models/characters/character_walk.glb",
+	IDLE_CLIP: "res://assets/models/characters/character_idle.glb",
+	GUARD_CLIP: "res://assets/models/characters/character_guard.glb",
+}
+## Clips played exactly as Meshy delivered them, their hips not pinned (agreed on #157): the guard's
+## hips already end where they start, and pinning its forward rock would drag his feet.
+const AS_DELIVERED := [GUARD_CLIP]
+## The bone whose sideways travel is taken out of every other clip, so he stays where game code puts him.
+const ROOT_BONE := "Hips"
 ## His body type (#150, scripts/body_types.gd).
 const BODY_TYPE := "male_average"
 ## His body's regions (#151): region -> the bones its triangles follow. The Outfit hides a region while a
 ## worn piece covers it (#153).
 const REGIONS := {
-	"head": ["mixamorig_Neck", "mixamorig_Head", "headfront"],
-	"torso": ["mixamorig_Spine", "mixamorig_Spine1", "mixamorig_Spine2", "mixamorig_LeftShoulder", "mixamorig_RightShoulder"],
-	"hips": ["mixamorig_Hips"],
-	"upper_arms": ["mixamorig_LeftArm", "mixamorig_RightArm"],
-	"forearms": ["mixamorig_LeftForeArm", "mixamorig_RightForeArm"],
-	"hands": ["mixamorig_LeftHand", "mixamorig_RightHand"],
-	"thighs": ["mixamorig_LeftUpLeg", "mixamorig_RightUpLeg"],
-	"calves": ["mixamorig_LeftLeg", "mixamorig_RightLeg"],
-	"feet": ["mixamorig_LeftFoot", "mixamorig_RightFoot", "mixamorig_LeftToeBase", "mixamorig_RightToeBase"],
+	"head": ["neck", "Head", "head_end", "headfront"],
+	"torso": ["Spine02", "Spine01", "Spine", "LeftShoulder", "RightShoulder"],
+	"hips": ["Hips"],
+	"upper_arms": ["LeftArm", "RightArm"],
+	"forearms": ["LeftForeArm", "RightForeArm"],
+	"hands": ["LeftHand", "RightHand"],
+	"thighs": ["LeftUpLeg", "RightUpLeg"],
+	"calves": ["LeftLeg", "RightLeg"],
+	"feet": ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"],
 }
 
 
@@ -41,6 +57,8 @@ func _post_import(scene: Node) -> Object:
 	for node: Node in scene.find_children("Icosphere*", "", true, false):
 		node.get_parent().remove_child(node)
 		node.free()
+	for clip: String in EXTRA_CLIPS:
+		_add_clip(scene, clip, EXTRA_CLIPS[clip])
 	for skeleton: Skeleton3D in scene.find_children("*", "Skeleton3D", true, false):
 		_unscale(scene, skeleton)
 	# Meshy's material also feeds its colour texture into emission and is fully metallic, so he'd glow
@@ -59,17 +77,16 @@ func _post_import(scene: Node) -> Object:
 		var library := player.get_animation_library(&"")
 		if library == null:
 			continue
-		if library.has_animation(HIT_FROM):
-			var hit: Animation = library.get_animation(HIT_FROM).duplicate(true)
-			hit.length = HIT_LENGTH
-			hit.loop_mode = Animation.LOOP_NONE
-			library.add_animation(&"hit", hit)
 		for clip: String in CLIPS:
 			var meshy: String = CLIPS[clip][0]
 			if not library.has_animation(meshy):
 				continue
-			library.rename_animation(meshy, clip)
-			library.get_animation(clip).loop_mode = Animation.LOOP_LINEAR if CLIPS[clip][1] else Animation.LOOP_NONE
+			if meshy != clip:
+				library.rename_animation(meshy, clip)
+			var animation := library.get_animation(clip)
+			animation.loop_mode = Animation.LOOP_LINEAR if CLIPS[clip][1] else Animation.LOOP_NONE
+			if not meshy in AS_DELIVERED:
+				_keep_in_place(animation)
 	return scene
 
 
@@ -208,3 +225,41 @@ func _add_part(mesh: ArrayMesh, arrays: Array, triangles: PackedInt32Array, mate
 	part[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, part, [], {}, flags)
 	mesh.surface_set_material(mesh.get_surface_count() - 1, material)
+
+
+## Adds the clip in the glb at `path` (on the same rig as his) to his AnimationPlayer as `clip`. Its
+## tracks name the same nodes and bones as his.
+func _add_clip(scene: Node, clip: String, path: String) -> void:
+	var players := scene.find_children("*", "AnimationPlayer", true, false)
+	if players.is_empty():
+		return
+	var library := (players[0] as AnimationPlayer).get_animation_library(&"")
+	var gltf := GLTFDocument.new()
+	var state := GLTFState.new()
+	state.handle_binary_image = GLTFState.HANDLE_BINARY_DISCARD_TEXTURES  # only its clip is wanted
+	if gltf.append_from_file(ProjectSettings.globalize_path(path), state) != OK:
+		push_error("Couldn't read the %s clip from %s" % [clip, path])
+		return
+	var source := gltf.generate_scene(state)
+	for source_player: AnimationPlayer in source.find_children("*", "AnimationPlayer", true, false):
+		for name in source_player.get_animation_list():
+			library.add_animation(clip, source_player.get_animation(name).duplicate(true))
+			break
+		break
+	source.free()
+
+
+## Takes the sideways travel out of `animation` (#157): its root bone's and any node's position keys keep
+## their height but stay over where the clip starts, so he plays every clip on the spot game code puts
+## him.
+func _keep_in_place(animation: Animation) -> void:
+	for t in animation.get_track_count():
+		if animation.track_get_type(t) != Animation.TYPE_POSITION_3D or animation.track_get_key_count(t) == 0:
+			continue
+		var bone := animation.track_get_path(t).get_concatenated_subnames()
+		if bone != "" and bone != ROOT_BONE:
+			continue
+		var start: Vector3 = animation.track_get_key_value(t, 0)
+		for key in animation.track_get_key_count(t):
+			var at: Vector3 = animation.track_get_key_value(t, key)
+			animation.track_set_key_value(t, key, Vector3(start.x, at.y, start.z))

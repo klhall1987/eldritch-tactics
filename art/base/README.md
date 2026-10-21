@@ -45,11 +45,19 @@ https://www.meshy.ai/terms-of-use). No credit is required. The terms also say Me
 identifiers (watermarks, metadata) must not be removed (§2.4), and that Meshy-made assets must not be
 used to train AI models that compete with Meshy (§2.6).
 
-**The player character** (#142) is `Meshy_AI_rigged_male_character_All_Animations.glb`, copied
-unchanged into the game as `assets/models/characters/character.glb` (about 33 MB): about 224,000
-triangles, 1.75 m tall, one 4096 px colour texture, on Meshy's 23-bone Mixamo-style rig (no finger
-bones; Godot imports `mixamorig:Hips` as `mixamorig_Hips`), with six clips (Idle_02, Walking, Running,
-Heavy_Hammer_Swing, Block1, air_squat). `scripts/character_import.gd` fits it to the game at import.
+**The player character** (#157) is the owner's fully dressed Meshy character (white long-sleeve
+button-down, blue jeans, white tennis shoes, short messy hair), made with Meshy's text-to-image,
+image-to-3D, auto-rigging and animation library. Four files, copied unchanged into the game:
+
+| Meshy file | In the game | What it is |
+|---|---|---|
+| `dressed_character_animations.glb` | `assets/models/characters/character.glb` (19 MB) | his 312,054-triangle mesh, one 2048 px colour texture, Meshy's 24-bone rig (`Hips` ... `RightToeBase`, `head_end`, `headfront`; no finger bones), and the clips Idle_03, Combat_Stance, Right_Hand_Sword_Slash and Hit_Reaction |
+| `dressed_character_walking.glb` | `assets/models/characters/character_walk.glb` (30 MB, imported as-is) | the same rig with the walking clip from Meshy's rigging |
+| `dressed_character_idle.glb` | `assets/models/characters/character_idle.glb` (30 MB, imported as-is) | the same rig with a relaxed idle, Idle_3 (library id 243; the main file's Idle_03 holds his hands up) |
+| `dressed_character_guard.glb` | `assets/models/characters/character_guard.glb` (30 MB, imported as-is) | the same rig with a raised guard, Block1 (library id 138; the main file's Combat_Stance crouches with his hands low), played as `combat_idle` |
+
+`scripts/character_import.gd` fits them to the game at import. (Before #157 he was
+`Meshy_AI_rigged_male_character_All_Animations.glb`, the undressed character, #142.)
 
 **The clothes** aren't in the game yet. They're the owner's files, in the folder the `MESHY` path
 points to (set in `.claude/settings.local.json`):

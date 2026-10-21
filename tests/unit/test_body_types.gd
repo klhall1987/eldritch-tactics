@@ -9,26 +9,22 @@ extends GutTest
 #   names), `model(name) -> String` (that body type's model glb, or "") and `shared_model() -> String`
 #   (the model whose skeleton is the shared skeleton).
 # - A character model says its body type with `body_type` metadata on its root.
-# - The shared skeleton's bones are SHARED_BONES (the 22 `mixamorig_*` bones Godot imports from Meshy's
-#   rig, plus `headfront`), with the parents in SHARED_BONES. A rest "matches" when its position is
-#   within 1 mm and its rotation within 1 degree of the shared skeleton's, both in skeleton space.
+# - The shared skeleton's bones are SHARED_BONES, with their parents: since #158 the dressed character's
+#   rig (22 limb and spine bones from `Hips` to `RightToeBase`, plus `head_end` and `headfront`). A rest
+#   "matches" when its position is within 1 mm and its rotation within 1 degree of the shared
+#   skeleton's, both in skeleton space.
 
 const BODY_TYPES_PATH := "res://scripts/body_types.gd"
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
 # bone -> parent ("" for the root)
 const SHARED_BONES := {
-	"mixamorig_Hips": "",
-	"mixamorig_Spine": "mixamorig_Hips", "mixamorig_Spine1": "mixamorig_Spine",
-	"mixamorig_Spine2": "mixamorig_Spine1", "mixamorig_Neck": "mixamorig_Spine2",
-	"mixamorig_Head": "mixamorig_Neck", "headfront": "mixamorig_Head",
-	"mixamorig_LeftShoulder": "mixamorig_Spine2", "mixamorig_LeftArm": "mixamorig_LeftShoulder",
-	"mixamorig_LeftForeArm": "mixamorig_LeftArm", "mixamorig_LeftHand": "mixamorig_LeftForeArm",
-	"mixamorig_RightShoulder": "mixamorig_Spine2", "mixamorig_RightArm": "mixamorig_RightShoulder",
-	"mixamorig_RightForeArm": "mixamorig_RightArm", "mixamorig_RightHand": "mixamorig_RightForeArm",
-	"mixamorig_LeftUpLeg": "mixamorig_Hips", "mixamorig_LeftLeg": "mixamorig_LeftUpLeg",
-	"mixamorig_LeftFoot": "mixamorig_LeftLeg", "mixamorig_LeftToeBase": "mixamorig_LeftFoot",
-	"mixamorig_RightUpLeg": "mixamorig_Hips", "mixamorig_RightLeg": "mixamorig_RightUpLeg",
-	"mixamorig_RightFoot": "mixamorig_RightLeg", "mixamorig_RightToeBase": "mixamorig_RightFoot",
+	"Hips": "",
+	"Spine02": "Hips", "Spine01": "Spine02", "Spine": "Spine01", "neck": "Spine", "Head": "neck",
+	"head_end": "Head", "headfront": "Head",
+	"LeftShoulder": "Spine", "LeftArm": "LeftShoulder", "LeftForeArm": "LeftArm", "LeftHand": "LeftForeArm",
+	"RightShoulder": "Spine", "RightArm": "RightShoulder", "RightForeArm": "RightArm", "RightHand": "RightForeArm",
+	"LeftUpLeg": "Hips", "LeftLeg": "LeftUpLeg", "LeftFoot": "LeftLeg", "LeftToeBase": "LeftFoot",
+	"RightUpLeg": "Hips", "RightLeg": "RightUpLeg", "RightFoot": "RightLeg", "RightToeBase": "RightFoot",
 }
 
 
@@ -74,8 +70,9 @@ func test_the_player_is_male_average():
 
 
 # Given every body type's model, when its skeleton is compared with the shared skeleton, then it has
-# exactly the shared skeleton's bones (the 22 `mixamorig_*` bones plus `headfront`), each with the same
-# parent, and each bone's rest is within 1 mm and 1 degree of the shared skeleton's.
+# exactly the shared skeleton's bones (since #158 the dressed rig's 24: `Hips` to `RightToeBase`, plus
+# `head_end` and `headfront`), each with the same parent, and each bone's rest is within 1 mm and 1
+# degree of the shared skeleton's.
 func test_every_body_type_is_on_the_shared_skeleton():
 	var types := _body_types()
 	if types == null:

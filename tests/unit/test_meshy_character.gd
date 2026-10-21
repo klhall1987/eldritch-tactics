@@ -5,33 +5,31 @@ extends GutTest
 # test_knife_in_hand.gd; criterion 5 is the whole suite.)
 #
 # Interface these tests choose:
-# - Meshy's bones are MESHY_BONES, named as Godot imports them: it turns Meshy's `mixamorig:Hips` into
-#   `mixamorig_Hips`, since `:` can't be in a bone name (agreed on #142). Height is the vertical extent
-#   of his drawn mesh's vertices, in the character's space.
+# - Meshy's bones are MESHY_BONES: since #157 the dressed character's rig (`Hips` ... `RightToeBase`,
+#   `head_end`, `headfront`). Height is the vertical extent of his drawn mesh's vertices, in the
+#   character's space.
 # - "His body is the only mesh drawn": every visible MeshInstance3D under the character is one of his
 #   body's region meshes, named `body_<region>` (since #151), and none named `Icosphere` is.
-# - Each clip is told by its length as Meshy made it: Idle_02 2.33 s, Walking 1.04 s, Block1 3.50 s,
-#   Heavy_Hammer_Swing 1.83 s (each within 0.1 s); `hit` is 0.6 s (within 0.05 s) and starts in Block1's
-#   first pose (every bone within 1 cm of combat_idle's at 0 s).
-# - Over walk, his hips (`mixamorig_Hips`) "travel" the horizontal distance between where they are at
+# - Each clip is told by its length as Meshy made it (#157): Idle_3 10.00 s (a relaxed idle, agreed on
+#   #157), the rig's walking clip 1.04 s, Block1 3.50 s (a raised guard, agreed on #157),
+#   Right_Hand_Sword_Slash 1.50 s,
+#   Hit_Reaction 1.63 s (each within 0.1 s).
+# - Over walk, his hips (`Hips`) "travel" the horizontal distance between where they are at
 #   the start of the clip and at its end.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
 const MESHY_BONES := [
-	"mixamorig_Hips", "mixamorig_Spine", "mixamorig_Spine1", "mixamorig_Spine2", "mixamorig_Neck",
-	"mixamorig_Head", "mixamorig_LeftShoulder", "mixamorig_LeftArm", "mixamorig_LeftForeArm",
-	"mixamorig_LeftHand", "mixamorig_RightShoulder", "mixamorig_RightArm", "mixamorig_RightForeArm",
-	"mixamorig_RightHand", "mixamorig_LeftUpLeg", "mixamorig_LeftLeg", "mixamorig_LeftFoot",
-	"mixamorig_LeftToeBase", "mixamorig_RightUpLeg", "mixamorig_RightLeg", "mixamorig_RightFoot",
-	"mixamorig_RightToeBase",
+	"Hips", "Spine02", "Spine01", "Spine", "neck", "Head", "head_end", "headfront",
+	"LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand",
+	"LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase",
 ]
 # clip -> [Meshy's length in seconds, loops]
 const CLIPS := {
-	"idle": [2.33, true],
+	"idle": [10.0, true],
 	"walk": [1.04, true],
 	"combat_idle": [3.5, true],
-	"attack": [1.83, false],
-	"hit": [0.6, false],
+	"attack": [1.5, false],
+	"hit": [1.63, false],
 }
 const OLD_TEXTURES := [
 	"character_brown_eye.png", "character_eyebrow001.png", "character_eyelashes01.png",
@@ -79,7 +77,7 @@ func _files(dir: String) -> PackedStringArray:
 
 
 # Given character.glb, when it's loaded, then it's the Meshy model as delivered: a skeleton with Meshy's
-# bones (mixamorig_Hips through mixamorig_RightHand), at least 200,000 triangles, 1.70-1.80 m tall with
+# bones (Hips through RightToeBase, plus head_end and headfront), at least 300,000 triangles, 1.70-1.80 m tall with
 # his lowest point at y = 0, and his body is the only mesh drawn (Meshy's stray Icosphere isn't).
 # (Changed by #151, as its ticket says: his body is now nine region meshes, `body_<region>`, so only
 # those are drawn, and the triangles are counted over all of them.)
@@ -116,15 +114,16 @@ func test_the_meshy_model_as_delivered():
 				var y := (to_character * v).y
 				lowest = minf(lowest, y)
 				highest = maxf(highest, y)
-	assert_gte(triangles, 200000, "his full-detail mesh, at least 200,000 triangles (has %d)" % triangles)
+	assert_gte(triangles, 300000, "his full-detail mesh, at least 300,000 triangles (has %d)" % triangles)
 	assert_between(highest - lowest, 1.70, 1.80, "he's 1.70-1.80 m tall (is %.3f m)" % (highest - lowest))
 	assert_almost_eq(lowest, 0.0, 0.01, "his lowest point is at y = 0 (is %.3f)" % lowest)
 
 
-# Given his AnimationPlayer, when its clips are inspected, then it has idle (Meshy's Idle_02), walk
-# (Walking), combat_idle (Block1), attack (Heavy_Hammer_Swing) and hit (the first 0.6 s of Block1): idle,
-# walk and combat_idle loop, attack and hit play once, and over walk his hips travel no more than 0.05 m
-# horizontally (he walks in place; game code moves him).
+# Given his AnimationPlayer, when its clips are inspected, then it has idle (Meshy's relaxed Idle_3,
+# 10.00 s), walk (the rig's walking clip, about 1.04 s), combat_idle (Block1, a raised guard, 3.50 s), attack
+# (Right_Hand_Sword_Slash, 1.50 s) and hit (Hit_Reaction, 1.63 s), each within 0.1 s: idle, walk and combat_idle loop, attack and hit
+# play once. (Changed by #157, as its ticket says. Staying in place is checked for every clip in
+# test_dressed_character.gd; walk's hips travel is kept here.)
 func test_meshy_clips_for_what_the_game_plays():
 	var character := _character()
 	if character == null:
@@ -142,22 +141,16 @@ func test_meshy_clips_for_what_the_game_plays():
 			continue
 		var animation := player.get_animation(clip)
 		var expected: float = CLIPS[clip][0]
-		var tolerance := 0.05 if clip == "hit" else 0.1
+		var tolerance := 0.1
 		assert_almost_eq(animation.length, expected, tolerance, "%s is Meshy's clip (%.2f s, Meshy's is %.2f s)" % [clip, animation.length, expected])
 		if CLIPS[clip][1]:
 			assert_ne(animation.loop_mode, Animation.LOOP_NONE, "%s loops" % clip)
 		else:
 			assert_eq(animation.loop_mode, Animation.LOOP_NONE, "%s plays once" % clip)
-	if not (player.has_animation("hit") and player.has_animation("combat_idle") and player.has_animation("walk")):
+	if not player.has_animation("walk"):
 		return
-	var guard := _pose_at(character, player, skeleton, "combat_idle", 0.0)
-	var flinch := _pose_at(character, player, skeleton, "hit", 0.0)
-	var furthest := 0.0
-	for b in skeleton.get_bone_count():
-		furthest = maxf(furthest, (guard[b] as Vector3).distance_to(flinch[b]))
-	assert_lt(furthest, 0.01, "hit starts in Block1's first pose (bones up to %.3f m apart)" % furthest)
-	var hips := skeleton.find_bone("mixamorig_Hips")
-	assert_ne(hips, -1, "his skeleton has mixamorig_Hips")
+	var hips := skeleton.find_bone("Hips")
+	assert_ne(hips, -1, "his skeleton has Hips")
 	if hips < 0:
 		return
 	var length := player.get_animation("walk").length

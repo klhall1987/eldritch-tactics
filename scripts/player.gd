@@ -8,8 +8,8 @@ extends CharacterBody3D
 signal path_finished
 
 const KNIFE := preload("res://assets/models/props/knife.glb")
-## The bone his knife is held on: his right hand in Meshy's rig (#142).
-const KNIFE_HAND := "mixamorig_RightHand"
+## The bone his knife is held on: his right hand in the dressed Meshy rig (#158).
+const KNIFE_HAND := "RightHand"
 ## How far the knife's grip sits along his hand from the wrist, in metres: in his palm.
 const KNIFE_GRIP := 0.07
 ## How far the knife's blade tips forward from the way his thumb points (1 = 45 degrees), towards his
