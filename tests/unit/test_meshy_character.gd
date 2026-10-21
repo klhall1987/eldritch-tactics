@@ -11,7 +11,8 @@ extends GutTest
 # - "His body is the only mesh drawn": every visible MeshInstance3D under the character is one of his
 #   body's region meshes, named `body_<region>` (since #151), and none named `Icosphere` is.
 # - Each clip is told by its length as Meshy made it (#157): Idle_3 10.00 s (a relaxed idle, agreed on
-#   #157), the rig's walking clip 1.04 s, Combat_Stance 1.67 s, Right_Hand_Sword_Slash 1.50 s,
+#   #157), the rig's walking clip 1.04 s, Block1 3.50 s (a raised guard, agreed on #157),
+#   Right_Hand_Sword_Slash 1.50 s,
 #   Hit_Reaction 1.63 s (each within 0.1 s).
 # - Over walk, his hips (`Hips`) "travel" the horizontal distance between where they are at
 #   the start of the clip and at its end.
@@ -26,7 +27,7 @@ const MESHY_BONES := [
 const CLIPS := {
 	"idle": [10.0, true],
 	"walk": [1.04, true],
-	"combat_idle": [1.67, true],
+	"combat_idle": [3.5, true],
 	"attack": [1.5, false],
 	"hit": [1.63, false],
 }
@@ -119,7 +120,7 @@ func test_the_meshy_model_as_delivered():
 
 
 # Given his AnimationPlayer, when its clips are inspected, then it has idle (Meshy's relaxed Idle_3,
-# 10.00 s), walk (the rig's walking clip, about 1.04 s), combat_idle (Combat_Stance, 1.67 s), attack
+# 10.00 s), walk (the rig's walking clip, about 1.04 s), combat_idle (Block1, a raised guard, 3.50 s), attack
 # (Right_Hand_Sword_Slash, 1.50 s) and hit (Hit_Reaction, 1.63 s), each within 0.1 s: idle, walk and combat_idle loop, attack and hit
 # play once. (Changed by #157, as its ticket says. Staying in place is checked for every clip in
 # test_dressed_character.gd; walk's hips travel is kept here.)
