@@ -10,8 +10,9 @@ extends GutTest
 #   character's space.
 # - "His body is the only mesh drawn": every visible MeshInstance3D under the character is one of his
 #   body's region meshes, named `body_<region>` (since #151), and none named `Icosphere` is.
-# - Each clip is told by its length as Meshy made it (#157): Idle_03 4.27 s, the rig's walking clip
-#   1.04 s, Combat_Stance 1.67 s, Right_Hand_Sword_Slash 1.50 s, Hit_Reaction 1.63 s (each within 0.1 s).
+# - Each clip is told by its length as Meshy made it (#157): Idle_3 10.00 s (a relaxed idle, agreed on
+#   #157), the rig's walking clip 1.04 s, Combat_Stance 1.67 s, Right_Hand_Sword_Slash 1.50 s,
+#   Hit_Reaction 1.63 s (each within 0.1 s).
 # - Over walk, his hips (`Hips`) "travel" the horizontal distance between where they are at
 #   the start of the clip and at its end.
 
@@ -23,7 +24,7 @@ const MESHY_BONES := [
 ]
 # clip -> [Meshy's length in seconds, loops]
 const CLIPS := {
-	"idle": [4.27, true],
+	"idle": [10.0, true],
 	"walk": [1.04, true],
 	"combat_idle": [1.67, true],
 	"attack": [1.5, false],
@@ -117,9 +118,9 @@ func test_the_meshy_model_as_delivered():
 	assert_almost_eq(lowest, 0.0, 0.01, "his lowest point is at y = 0 (is %.3f)" % lowest)
 
 
-# Given his AnimationPlayer, when its clips are inspected, then it has idle (Meshy's Idle_03, 4.27 s), walk
-# (the rig's walking clip, about 1.04 s), combat_idle (Combat_Stance, 1.67 s), attack (Right_Hand_Sword_Slash,
-# 1.50 s) and hit (Hit_Reaction, 1.63 s), each within 0.1 s: idle, walk and combat_idle loop, attack and hit
+# Given his AnimationPlayer, when its clips are inspected, then it has idle (Meshy's relaxed Idle_3,
+# 10.00 s), walk (the rig's walking clip, about 1.04 s), combat_idle (Combat_Stance, 1.67 s), attack
+# (Right_Hand_Sword_Slash, 1.50 s) and hit (Hit_Reaction, 1.63 s), each within 0.1 s: idle, walk and combat_idle loop, attack and hit
 # play once. (Changed by #157, as its ticket says. Staying in place is checked for every clip in
 # test_dressed_character.gd; walk's hips travel is kept here.)
 func test_meshy_clips_for_what_the_game_plays():
