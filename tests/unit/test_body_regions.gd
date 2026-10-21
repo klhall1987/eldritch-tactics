@@ -14,7 +14,7 @@ extends GutTest
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
 const MESHY_TRIANGLES := 312054
-const MESHY_TEXTURE := "res://assets/models/characters/character_Material_0_baseColor.png"
+const MESHY_TEXTURE := "res://assets/models/characters/character_Material_0_baseColor.jpg"  # Meshy embedded a JPEG (agreed on #158)
 const MESHY_LOW := Vector3(-0.4758, 0.0, -0.161)
 const MESHY_HIGH := Vector3(0.4758, 1.75, 0.161)
 # region -> the bones its vertices mostly follow
