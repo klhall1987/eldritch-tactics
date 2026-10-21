@@ -6,27 +6,28 @@ extends GutTest
 # Interface these tests choose:
 # - A region is the MeshInstance3D named `body_<region>` under the character, skinned to his skeleton
 #   (its `skin` set, its `skeleton` path leading to his Skeleton3D).
-# - Meshy's body has MESHY_TRIANGLES triangles, its colour texture is MESHY_TEXTURE, and its vertices
+# - Meshy's body (since #158 the dressed character's) has MESHY_TRIANGLES triangles, its colour texture is
+#   MESHY_TEXTURE, and its vertices
 #   span MESHY_LOW to MESHY_HIGH in the character's space: "its vertices where they were" means the
 #   regions' vertices together span the same box (within 2 mm).
 # - A vertex is "weighted mostly to" the bone with its largest weight, named by its bind.
 
 const CHARACTER_PATH := "res://assets/models/characters/character.glb"
-const MESHY_TRIANGLES := 223547
-const MESHY_TEXTURE := "res://assets/models/characters/character_texture_0.png"
-const MESHY_LOW := Vector3(-0.4545, 0.0, -0.1358)
-const MESHY_HIGH := Vector3(0.4545, 1.75, 0.1358)
+const MESHY_TRIANGLES := 312054
+const MESHY_TEXTURE := "res://assets/models/characters/character_Material_0_baseColor.png"
+const MESHY_LOW := Vector3(-0.4758, 0.0, -0.161)
+const MESHY_HIGH := Vector3(0.4758, 1.75, 0.161)
 # region -> the bones its vertices mostly follow
 const REGIONS := {
-	"head": ["mixamorig_Neck", "mixamorig_Head", "headfront"],
-	"torso": ["mixamorig_Spine", "mixamorig_Spine1", "mixamorig_Spine2", "mixamorig_LeftShoulder", "mixamorig_RightShoulder"],
-	"hips": ["mixamorig_Hips"],
-	"upper_arms": ["mixamorig_LeftArm", "mixamorig_RightArm"],
-	"forearms": ["mixamorig_LeftForeArm", "mixamorig_RightForeArm"],
-	"hands": ["mixamorig_LeftHand", "mixamorig_RightHand"],
-	"thighs": ["mixamorig_LeftUpLeg", "mixamorig_RightUpLeg"],
-	"calves": ["mixamorig_LeftLeg", "mixamorig_RightLeg"],
-	"feet": ["mixamorig_LeftFoot", "mixamorig_RightFoot", "mixamorig_LeftToeBase", "mixamorig_RightToeBase"],
+	"head": ["neck", "Head", "head_end", "headfront"],
+	"torso": ["Spine02", "Spine01", "Spine", "LeftShoulder", "RightShoulder"],
+	"hips": ["Hips"],
+	"upper_arms": ["LeftArm", "RightArm"],
+	"forearms": ["LeftForeArm", "RightForeArm"],
+	"hands": ["LeftHand", "RightHand"],
+	"thighs": ["LeftUpLeg", "RightUpLeg"],
+	"calves": ["LeftLeg", "RightLeg"],
+	"feet": ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"],
 }
 
 
