@@ -119,6 +119,8 @@ func _start(controller: Node, body: CharacterBody3D, cultist: Node3D) -> void:
 # Given character.glb, when its AnimationPlayer is inspected, then it has a looping combat_idle
 # clip, with his feet staying put. Over the clip his hands sit higher and further forward than in idle
 # (raised guard). (Since #142 it's Meshy's Block1, so its length and stance are Meshy's.)
+# (Since #157 it's Block1 as Meshy delivered it, whose feet shift by themselves up to 0.020 m, so "staying
+# put" is within 0.025 m, agreed on #157.)
 func test_character_has_a_combat_idle_guard():
 	var character := _load(CHARACTER_PATH)
 	if character == null:
@@ -142,8 +144,8 @@ func test_character_has_a_combat_idle_guard():
 		var pose := _pose_at(character, player, skeleton, "combat_idle", clip.length * i / SAMPLES)
 		for foot: int in feet:
 			var moved: float = pose[foot].distance_to(start[foot])
-			assert_lt(moved, 0.02, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
-			if moved >= 0.02:
+			assert_lt(moved, 0.025, "his feet stay put in combat_idle (%s moved %.3f m)" % [skeleton.get_bone_name(foot), moved])
+			if moved >= 0.025:
 				return
 	for hand in ["LeftHand", "RightHand"]:
 		var bone := skeleton.find_bone(hand)
