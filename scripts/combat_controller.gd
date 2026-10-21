@@ -33,7 +33,7 @@ const ATTACK_REACH := 1.5
 ## How tall a combatant's body is, for clicking on it (metres).
 const BODY_HEIGHT := 1.8
 ## How far through the attacker's `attack` clip the blow lands and the target flinches, unless the attacker
-## says otherwise with `hit_at` metadata (the player's Meshy hammer swing lands later, #142).
+## says otherwise with `hit_at` metadata (the player's sword slash lands on its backhand, #158).
 const HIT_AT := 0.7
 ## The body part that is a combatant's main pool (#122).
 const BODY := "body"
