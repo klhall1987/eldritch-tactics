@@ -9,6 +9,7 @@ extends RefCounted
 const GROUP := &"wounds"
 const SHORTEST := 0.08
 const SPACING := 0.06  # cuts stay at least this far apart
+const BESIDE := 0.13  # and a second cut in the same place no further than this from the last
 const FLESH := Color(0.55, 0.06, 0.05)  # the cut's lips
 const DEPTH := Color(0.3, 0.01, 0.01)  # inside the cut
 const MOVING_OVER := 0.1  # seconds of the slash that give the way the tip was moving at the blow
@@ -81,10 +82,16 @@ static func cut(target: Node3D, attacker: Node3D, slash: Array, slash_from: floa
 	# A second cut in the same place steps just below the last.
 	var taken := (target.get_tree().get_nodes_in_group(GROUP) as Array).filter(func(w: Node) -> bool: return target.is_ancestor_of(w))
 	var found := []
+	var stepped := false
 	for step in 6:
 		found = _front_point(points, centre, toward, across, height - step * SPACING * 1.2, side)
-		if found.is_empty() or taken.all(func(w: Node3D) -> bool: return w.global_position.distance_to(found[0]) >= SPACING):
+		stepped = step > 0
+		if found.is_empty() or (_clear(found[0], taken) and (not stepped or _beside(found[0], taken))):
 			break
+	# A spiky body can put the front-most skin a step lower far from the last cut: then the front-most
+	# skin beside it, not above it, instead.
+	if stepped and not found.is_empty() and not (_clear(found[0], taken) and _beside(found[0], taken)):
+		found = _beside_point(points, toward, taken)
 	if found.is_empty():
 		found = _front_point(points, centre, toward, across, height, side)
 	if found.is_empty():
@@ -114,6 +121,31 @@ static func cut(target: Node3D, attacker: Node3D, slash: Array, slash_from: floa
 	wound.add_child(_gash("Lips", ribbon, 0.022, FLESH, 0.0))
 	wound.add_child(_gash("Depth", _inset(ribbon, 0.85), 0.008, DEPTH, 0.002))
 	return wound
+
+
+## Whether a cut at `at` keeps clear of the `taken` cuts.
+static func _clear(at: Vector3, taken: Array) -> bool:
+	return taken.all(func(w: Node3D) -> bool: return w.global_position.distance_to(at) >= SPACING)
+
+
+## Whether a cut at `at` sits beside one of the `taken` cuts.
+static func _beside(at: Vector3, taken: Array) -> bool:
+	return taken.any(func(w: Node3D) -> bool: return w.global_position.distance_to(at) <= BESIDE)
+
+
+## The front-most skin point beside the last of the `taken` cuts and not above it: [position, bone], or [].
+static func _beside_point(points: Array, toward: Vector3, taken: Array) -> Array:
+	var last: Vector3 = (taken[-1] as Node3D).global_position
+	var best := []
+	var best_reach := -INF
+	for point: Array in points:
+		var at: Vector3 = point[0]
+		if at.y > last.y + 0.005 or not _clear(at, taken) or not _beside(at, taken):
+			continue
+		if at.dot(toward) > best_reach:
+			best_reach = at.dot(toward)
+			best = point
+	return best
 
 
 ## The front-most skin point near (`height`, `side`): [position, bone], or [] if none is there.
