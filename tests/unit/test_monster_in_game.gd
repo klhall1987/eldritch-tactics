@@ -8,6 +8,8 @@ extends GutTest
 # - "Its widest point, seen from above, excluding its legs" is the furthest any of its skinned vertices
 #   not following a `leg*` bone (most) reaches, horizontally, from its origin, in its rest pose. Its
 #   TouchArea keeps #19's rule (checked in test_enemy_encounter.gd).
+# - Since #162 monster.glb is the Meshy monster (#160, #161); these checks are unchanged, and hold for
+#   it: its legs are still the `leg*` bones, so its widest point still leaves them out.
 # - Cuts and blood are #93's `wounds` and #94's `blood_sprays` groups.
 
 const MONSTER_PATH := "res://assets/models/characters/monster.glb"
