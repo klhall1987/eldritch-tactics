@@ -1,16 +1,17 @@
 extends GutTest
-# The monster's animations (ticket #107): monster.glb idles, scuttles in place on its skinny legs,
-# attacks with a lunge and two snaps of its mandibles, and recoils when hit.
+# The monster's animations (ticket #107; since #161 the Meshy monster's, made in Blender on its Meshy
+# rig): monster.glb idles, scuttles in place on its four legs, strikes with its claw, and recoils when
+# hit. (Replaced by #161, as its ticket says: the mandible snaps became the claw strike, and the bones
+# are #160's.)
 #
 # Interface these tests choose (positions are bone heads in the monster's space: +Y up, +Z the way it
 # faces):
-# - Its feet are the last bone of each `leg*` chain (#106's legs): the `leg*` bone with no `leg*`
+# - Its feet are the last bone of each `leg*` chain (#160's legs): the `leg*` bone with no `leg*`
 #   child. A foot is "on the floor" when it's within 0.03 m of its rest height.
-# - How far the mandibles are open is the angle between the `mandible_l` and `mandible_r` bones'
-#   directions (each bone's +Y axis), against that angle in `idle`'s first frame. "Open" is at least
-#   20 degrees wider than that; "closed" is within 8 degrees of it.
-# - Its "idle pose" is `idle`'s first frame; a clip starts or ends in it when every bone is within
-#   0.03 m of it.
+# - Its claw's tips are its `claw*` bones with no children (the ends of #160's three `claw_finger_*`
+#   chains); how far forward the claw reaches is the furthest +Z any tip is at.
+# - Its head is the average of its `head_*` bones (#160). Its body is its `body` bone.
+# - Its "idle pose" is `idle`'s first frame; a clip ends in it when every bone is within 0.03 m of it.
 
 const MONSTER_PATH := "res://assets/models/characters/monster.glb"
 const SAMPLES := 48
@@ -75,10 +76,25 @@ func _feet(skeleton: Skeleton3D) -> Array:
 	return feet
 
 
+func _bones_named(skeleton: Skeleton3D, prefix: String, tips_only: bool) -> Array:
+	var found := []
+	for b in skeleton.get_bone_count():
+		if skeleton.get_bone_name(b).begins_with(prefix) and (not tips_only or skeleton.get_bone_children(b).is_empty()):
+			found.append(b)
+	return found
+
+
 func _bone(rig: Array, name: String) -> int:
 	var b := (rig[2] as Skeleton3D).find_bone(name)
 	assert_gte(b, 0, "it has a %s bone" % name)
 	return b
+
+
+func _average(pose: Array, bones: Array) -> Vector3:
+	var sum := Vector3.ZERO
+	for b: int in bones:
+		sum += (pose[b] as Transform3D).origin
+	return sum / bones.size()
 
 
 func _largest_difference(a: Array, b: Array) -> float:
@@ -88,20 +104,13 @@ func _largest_difference(a: Array, b: Array) -> float:
 	return largest
 
 
-func _mandible_angle(pose: Array, left: int, right: int) -> float:
-	return rad_to_deg((pose[left] as Transform3D).basis.y.angle_to((pose[right] as Transform3D).basis.y))
-
-
-func _starts_and_ends_idle(rig: Array, clip: String) -> void:
-	var idle := _pose_at(rig, "idle", 0.0)
-	var start := _largest_difference(_pose_at(rig, clip, 0.0), idle)
-	var finish := _largest_difference(_pose_at(rig, clip, _length(rig, clip)), idle)
-	assert_lte(start, 0.03, "%s starts in its idle pose (%.3f m off)" % [clip, start])
+func _ends_idle(rig: Array, clip: String) -> void:
+	var finish := _largest_difference(_pose_at(rig, clip, _length(rig, clip)), _pose_at(rig, "idle", 0.0))
 	assert_lte(finish, 0.03, "%s ends in its idle pose (%.3f m off)" % [clip, finish])
 
 
-# Given monster.glb's AnimationPlayer, when it's inspected, then it has idle (looping, 2-4 s), walk
-# (looping, 0.6-1.5 s), attack (once, 1.0-1.6 s) and hit (once, 0.4-0.8 s).
+# Given monster.glb's AnimationPlayer, when it's inspected, then it has idle (loops, 2-4 s), walk (loops,
+# 0.6-1.5 s), attack (plays once, 1.0-1.6 s) and hit (plays once, 0.4-0.8 s).
 func test_clips():
 	var rig := _rig()
 	if rig.is_empty() or not _has_clips(rig, ["idle", "walk", "attack", "hit"]):
@@ -117,84 +126,87 @@ func test_clips():
 
 
 # Given walk is sampled, when its feet are tracked, then every foot moves at least 0.08 m over the cycle,
-# and at every moment at least half its feet are on the floor.
+# at every moment at least half its feet are on the floor, and its body ends within 0.05 m
+# (horizontally) of where it starts and never moves more than 0.15 m away.
 func test_it_scuttles_in_place():
 	var rig := _rig()
 	if rig.is_empty() or not _has_clips(rig, ["walk"]):
 		return
 	var skeleton: Skeleton3D = rig[2]
 	var feet := _feet(skeleton)
+	var body := _bone(rig, "body")
 	assert_gte(feet.size(), 4, "it has at least four feet")
-	if feet.size() < 4:
+	if feet.size() < 4 or body < 0:
 		return
 	var rest := {}
 	for foot: int in feet:
-		rest[foot] = (skeleton.global_transform * skeleton.get_bone_global_rest(foot)).origin.y
+		rest[foot] = (rig[0] as Node3D).global_transform.affine_inverse() * skeleton.global_transform * skeleton.get_bone_global_rest(foot).origin
 	var travel := {}
 	var start := _pose_at(rig, "walk", 0.0)
-	for i in SAMPLES:
+	var body_start: Vector3 = (start[body] as Transform3D).origin
+	var wander := 0.0
+	for i in SAMPLES + 1:
 		var pose := _pose_at(rig, "walk", _length(rig, "walk") * i / SAMPLES)
+		var at_body: Vector3 = (pose[body] as Transform3D).origin
+		wander = maxf(wander, Vector2(at_body.x - body_start.x, at_body.z - body_start.z).length())
+		if i == SAMPLES:
+			var end := Vector2(at_body.x - body_start.x, at_body.z - body_start.z).length()
+			assert_lte(end, 0.05, "its body ends where it started (%.3f m off)" % end)
+			continue
 		var down := 0
 		for foot: int in feet:
 			var at: Vector3 = (pose[foot] as Transform3D).origin
 			travel[foot] = maxf(travel.get(foot, 0.0), at.distance_to((start[foot] as Transform3D).origin))
-			if at.y - rest[foot] <= 0.03:
+			if at.y - (rest[foot] as Vector3).y <= 0.03:
 				down += 1
 		assert_gte(down * 2, feet.size(), "at sample %d at least half its feet are down (%d of %d)" % [i, down, feet.size()])
 		if down * 2 < feet.size():
 			return
+	assert_lte(wander, 0.15, "its body stays in place (up to %.3f m away)" % wander)
 	for foot: int in feet:
 		assert_gte(travel[foot], 0.08, "%s moves over the walk (%.3f m)" % [skeleton.get_bone_name(foot), travel[foot]])
 
 
-# Given attack is sampled, when its mandibles and head are measured, then the mandibles open at least 20
-# degrees and close again, twice, and its head lunges at least 0.1 m forward; the clip starts and ends
-# in its idle pose.
-func test_it_lunges_and_snaps_twice():
+# Given attack is sampled, when its claw is tracked, then its tip reaches at least 0.3 m further forward
+# than in idle, and the clip ends in its idle pose.
+func test_it_strikes_with_its_claw():
 	var rig := _rig()
 	if rig.is_empty() or not _has_clips(rig, ["idle", "attack"]):
 		return
-	var left := _bone(rig, "mandible_l")
-	var right := _bone(rig, "mandible_r")
-	var head := _bone(rig, "head")
-	if left < 0 or right < 0 or head < 0:
+	var tips := _bones_named(rig[2], "claw", true)
+	assert_gt(tips.size(), 0, "its claw has tips")
+	if tips.is_empty():
 		return
 	var idle := _pose_at(rig, "idle", 0.0)
-	var shut := _mandible_angle(idle, left, right)
-	var head_z: float = (idle[head] as Transform3D).origin.z
-	var snaps := 0
-	var open := false
-	var lunge := 0.0
+	var idle_reach := -INF
+	for tip: int in tips:
+		idle_reach = maxf(idle_reach, (idle[tip] as Transform3D).origin.z)
+	var reach := 0.0
 	for i in SAMPLES + 1:
 		var pose := _pose_at(rig, "attack", _length(rig, "attack") * i / SAMPLES)
-		var angle := _mandible_angle(pose, left, right) - shut
-		if not open and angle >= 20.0:
-			open = true
-		elif open and angle <= 8.0:
-			open = false
-			snaps += 1
-		lunge = maxf(lunge, (pose[head] as Transform3D).origin.z - head_z)
-	assert_eq(snaps, 2, "its mandibles open and snap shut twice (%d)" % snaps)
-	assert_gte(lunge, 0.1, "its head lunges forward (%.3f m)" % lunge)
-	_starts_and_ends_idle(rig, "attack")
+		for tip: int in tips:
+			reach = maxf(reach, (pose[tip] as Transform3D).origin.z - idle_reach)
+	assert_gte(reach, 0.3, "its claw strikes forward (%.3f m beyond idle)" % reach)
+	_ends_idle(rig, "attack")
 
 
-# Given hit is sampled, when its head is tracked, then it recoils at least 0.06 m backwards; the clip
-# starts and ends in its idle pose.
+# Given hit is sampled, when its head is tracked, then it recoils at least 0.06 m backwards, and the clip
+# ends in its idle pose.
 func test_it_recoils_when_hit():
 	var rig := _rig()
 	if rig.is_empty() or not _has_clips(rig, ["idle", "hit"]):
 		return
-	var head := _bone(rig, "head")
-	if head < 0:
+	var head := _bones_named(rig[2], "head", false)
+	assert_gt(head.size(), 0, "it has a head")
+	if head.is_empty():
 		return
-	var head_z: float = (_pose_at(rig, "idle", 0.0)[head] as Transform3D).origin.z
+	var head_z := _average(_pose_at(rig, "idle", 0.0), head).z
 	var recoil := 0.0
 	for i in SAMPLES + 1:
 		var pose := _pose_at(rig, "hit", _length(rig, "hit") * i / SAMPLES)
-		recoil = maxf(recoil, head_z - (pose[head] as Transform3D).origin.z)
+		recoil = maxf(recoil, head_z - _average(pose, head).z)
 	assert_gte(recoil, 0.06, "its head recoils backwards (%.3f m)" % recoil)
-	_starts_and_ends_idle(rig, "hit")
+	_ends_idle(rig, "hit")
 
 
 # Given idle, attack or hit is playing, when its feet are measured, then they stay put (within 0.03 m).
