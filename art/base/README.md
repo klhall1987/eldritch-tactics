@@ -24,21 +24,9 @@ OpenGL normal map:
 | `knitted_fleece_diff_1k.jpg`, `knitted_fleece_nor_gl_1k.jpg` | [knitted_fleece](https://polyhaven.com/a/knitted_fleece) (1k) | the cultist's under-robe and bandage wraps (recoloured, with grime and blood painted on) |
 | `denim_fabric_diff_1k.jpg`, `denim_fabric_nor_gl_1k.jpg` | [denim_fabric](https://polyhaven.com/a/denim_fabric) (1k) | the cultist's robe, hood and rags (recoloured, with grime and blood painted on) |
 
-## Creature Creator (the monster)
+## Meshy (the player character, his clothes and the monster)
 
-The monster (`art/blender/characters/monster.py` → `assets/models/characters/monster.glb`) is built
-with **Creature Creator for Blender** by Joey Carlino (https://joeycarlino.itch.io/creature-creator-for-blender,
-also https://joeycarlino.gumroad.com/l/creature), licensed **CC BY 4.0**
-(https://creativecommons.org/licenses/by/4.0/). Changes: the monster's body, head, legs and mandibles
-are grown with the Creature Creator's `Body Tool` along new curves, turned into meshes, decimated,
-recoloured, given glowing eyes, and rigged and animated for this game.
-
-The tool isn't committed here: it's the owner's `creature_creator_v1.blend`, which the build
-script reads from the `CREATURE_CREATOR` path (set in `.claude/settings.local.json`).
-
-## Meshy (the player character and his clothes)
-
-The owner generated the player character and three clothing pieces with **Meshy**
+The owner generated the player character, three clothing pieces and the monster with **Meshy**
 (https://www.meshy.ai). They aren't CC0: they were made on a paid Meshy plan, so the owner owns them
 ("customers on a paid Meshy plan own their Customer Output", Meshy Terms of Use §3.2,
 https://www.meshy.ai/terms-of-use). No credit is required. The terms also say Meshy's AI-generated
@@ -58,6 +46,19 @@ image-to-3D, auto-rigging and animation library. Four files, copied unchanged in
 
 `scripts/character_import.gd` fits them to the game at import. (Before #157 he was
 `Meshy_AI_rigged_male_character_All_Animations.glb`, the undressed character, #142.)
+
+**The monster** (#160) is the owner's Meshy creature, rigged with Meshy's auto-rig:
+`monster_model.glb` (41 MB), in the `MESHY` folder. It holds a 90,349-triangle mesh, 1.70 m tall, with
+four long legs, one large claw and a curled tail. It has 2048 px colour and normal maps, a 4096 px
+metallic-roughness map, and Meshy's 54-bone rig (`Bone_000` ... `Bone_053`), but no animations.
+`art/blender/characters/monster.py` builds `assets/models/characters/monster.glb` from it:
+- it drops the stray `Icosphere` and renames the bones for what they move
+- it scales it as a whole to about 0.48x (0.82 m tall), the old monster's footprint (agreed on #162)
+- skin Meshy put on a leg but far from it (most of the tail) follows the body instead
+- it makes its idle, walk, attack and hit (#161).
+
+Its vertices and images are Meshy's, unchanged. (Before #160 the monster was built with Joey
+Carlino's Creature Creator, CC BY 4.0; nothing of that is in the game now.)
 
 **The clothes** aren't in the game yet. They're the owner's files, in the folder the `MESHY` path
 points to (set in `.claude/settings.local.json`):

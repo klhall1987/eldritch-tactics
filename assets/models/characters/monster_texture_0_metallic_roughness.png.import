@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhmxo6d3fmhqd"
-path.s3tc="res://.godot/imported/monster_monster_roughness.png-eaf43d7e2609bf8e7e39040729e84993.s3tc.ctex"
+uid="uid://ctpeiq6ge2ahn"
+path.s3tc="res://.godot/imported/monster_texture_0_metallic_roughness.png-612541cb94d1645167c92ac3f42f737d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "dfc639b1df75bb47491ace59e9cc0c35"
+"md5": "29eb493eb5156443285d25dd16bf6609"
 }
 
 [deps]
 
-source_file="res://assets/models/characters/monster_monster_roughness.png"
-dest_files=["res://.godot/imported/monster_monster_roughness.png-eaf43d7e2609bf8e7e39040729e84993.s3tc.ctex"]
+source_file="res://assets/models/characters/monster_texture_0_metallic_roughness.png"
+dest_files=["res://.godot/imported/monster_texture_0_metallic_roughness.png-612541cb94d1645167c92ac3f42f737d.s3tc.ctex"]
 
 [params]
 

@@ -8,6 +8,8 @@ extends GutTest
 # - "Its widest point, seen from above, excluding its legs" is the furthest any of its skinned vertices
 #   not following a `leg*` bone (most) reaches, horizontally, from its origin, in its rest pose. Its
 #   TouchArea keeps #19's rule (checked in test_enemy_encounter.gd).
+# - Since #162 monster.glb is the Meshy monster (#160, #161); these checks are unchanged, and hold for
+#   it: its legs are still the `leg*` bones, so its widest point still leaves them out.
 # - Cuts and blood are #93's `wounds` and #94's `blood_sprays` groups.
 
 const MONSTER_PATH := "res://assets/models/characters/monster.glb"
@@ -169,13 +171,14 @@ func test_cuts_and_blood_land_on_it():
 		if mi.skin == null or wound.is_ancestor_of(mi):
 			continue
 		for s in mi.mesh.get_surface_count():
-			for i in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX].size():
-				nearest = minf(nearest, _skinned(mi, s, i).distance_to(at))
+			# Each surface's arrays are fetched once (agreed on #162: the Meshy monster has 154,613 vertices).
+			var arrays := mi.mesh.surface_get_arrays(s)
+			for i in arrays[Mesh.ARRAY_VERTEX].size():
+				nearest = minf(nearest, _skinned(mi, arrays, i).distance_to(at))
 	assert_lte(nearest, 0.05, "the cut is on its skin (%.3f m from it)" % nearest)
 
 
-func _skinned(mi: MeshInstance3D, s: int, index: int) -> Vector3:
-	var arrays := mi.mesh.surface_get_arrays(s)
+func _skinned(mi: MeshInstance3D, arrays: Array, index: int) -> Vector3:
 	var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][index]
 	var bones = arrays[Mesh.ARRAY_BONES]
 	var weights = arrays[Mesh.ARRAY_WEIGHTS]

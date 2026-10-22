@@ -111,9 +111,8 @@ func _body_meshes(node: Node) -> Array:
 		return mi.skin != null)
 
 
-# Where vertex `index` of surface `s` of `mi` is drawn now, skinned on the CPU.
-func _skinned(mi: MeshInstance3D, s: int, index: int) -> Vector3:
-	var arrays := mi.mesh.surface_get_arrays(s)
+# Where vertex `index` of `mi` (in a surface's `arrays`) is drawn now, skinned on the CPU.
+func _skinned(mi: MeshInstance3D, arrays: Array, index: int) -> Vector3:
 	var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][index]
 	var bones = arrays[Mesh.ARRAY_BONES]
 	var weights = arrays[Mesh.ARRAY_WEIGHTS]
@@ -134,16 +133,17 @@ func _skinned(mi: MeshInstance3D, s: int, index: int) -> Vector3:
 	return skeleton.global_transform * result
 
 
-# The nearest point of `node`'s body surface to `point`: [distance, mesh, surface, vertex index].
+# The nearest point of `node`'s body surface to `point`: [distance, mesh, its surface's arrays, vertex
+# index]. Each surface's arrays are fetched once (agreed on #162: the Meshy monster has 154,613 vertices).
 func _nearest_skin(node: Node, point: Vector3) -> Array:
-	var best := [INF, null, -1, -1]
+	var best := [INF, null, [], -1]
 	for mi: MeshInstance3D in _body_meshes(node):
 		for s in mi.mesh.get_surface_count():
-			var count: int = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX].size()
-			for i in count:
-				var d := _skinned(mi, s, i).distance_to(point)
+			var arrays := mi.mesh.surface_get_arrays(s)
+			for i in arrays[Mesh.ARRAY_VERTEX].size():
+				var d := _skinned(mi, arrays, i).distance_to(point)
 				if d < best[0]:
-					best = [d, mi, s, i]
+					best = [d, mi, arrays, i]
 	return best
 
 

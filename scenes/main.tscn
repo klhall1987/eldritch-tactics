@@ -91,9 +91,10 @@ metadata/movement = 6.0
 metadata/attack_pool = 4
 metadata/defence = 2
 metadata/weapon_damage = 1
-metadata/body_radius = 0.31
+metadata/body_radius = 0.4
+metadata/hit_at = 0.6
 metadata/max_hit_points = 12
-metadata/body_parts = [{"id": "body", "name": "body", "bones": ["root", "spine", "head"], "share": 1.0}, {"id": "leg_1_l", "name": "left front leg", "bones": ["leg_1_upper_l", "leg_1_lower_l", "leg_1_foot_l"], "share": 0.25}, {"id": "leg_1_r", "name": "right front leg", "bones": ["leg_1_upper_r", "leg_1_lower_r", "leg_1_foot_r"], "share": 0.25}, {"id": "leg_2_l", "name": "left back leg", "bones": ["leg_2_upper_l", "leg_2_lower_l", "leg_2_foot_l"], "share": 0.25}, {"id": "leg_2_r", "name": "right back leg", "bones": ["leg_2_upper_r", "leg_2_lower_r", "leg_2_foot_r"], "share": 0.25}, {"id": "mandible_l", "name": "left mandible", "bones": ["mandible_l"], "share": 0.15}, {"id": "mandible_r", "name": "right mandible", "bones": ["mandible_r"], "share": 0.15}]
+metadata/body_parts = [{"id": "body", "name": "body", "bones": ["root", "body", "head_1", "head_2", "head_3", "head_4", "head_5"], "share": 1.0}, {"id": "leg_1_l", "name": "left front leg", "bones": ["leg_1_1_l", "leg_1_2_l", "leg_1_3_l", "leg_1_4_l", "leg_1_5_l"], "share": 0.25}, {"id": "leg_1_r", "name": "right front leg", "bones": ["leg_1_1_r", "leg_1_2_r", "leg_1_3_r", "leg_1_4_r", "leg_1_5_r"], "share": 0.25}, {"id": "leg_2_l", "name": "left back leg", "bones": ["leg_2_1_l", "leg_2_2_l", "leg_2_3_l", "leg_2_4_l", "leg_2_5_l"], "share": 0.25}, {"id": "leg_2_r", "name": "right back leg", "bones": ["leg_2_1_r", "leg_2_2_r", "leg_2_3_r", "leg_2_4_r"], "share": 0.25}, {"id": "claw", "name": "claw", "bones": ["claw_1", "claw_2", "claw_finger_1_1", "claw_finger_1_2", "claw_finger_1_3", "claw_finger_2_1", "claw_finger_2_2", "claw_finger_2_3", "claw_finger_2_4", "claw_finger_3_1", "claw_finger_3_2", "claw_finger_3_3", "claw_finger_3_4"], "share": 0.15}]
 
 [node name="TouchArea" type="Area3D" parent="Cultist" unique_id=1674142789]
 

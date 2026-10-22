@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c36fdr4sksyqc"
-path.s3tc="res://.godot/imported/monster_monster_albedo.png-0dad1e785c2da2e7b4d8dddce9798ea6.s3tc.ctex"
+uid="uid://bpmrqwxdhskud"
+path.s3tc="res://.godot/imported/monster_texture_0.png-4722a79eb6f3f38767cf4072a6c06ce3.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "53aa3f78e414e06dcb01f0eafc91424e"
+"md5": "72749ac3e9cca4fa08d3605d5e5e531d"
 }
 
 [deps]
 
-source_file="res://assets/models/characters/monster_monster_albedo.png"
-dest_files=["res://.godot/imported/monster_monster_albedo.png-0dad1e785c2da2e7b4d8dddce9798ea6.s3tc.ctex"]
+source_file="res://assets/models/characters/monster_texture_0.png"
+dest_files=["res://.godot/imported/monster_texture_0.png-4722a79eb6f3f38767cf4072a6c06ce3.s3tc.ctex"]
 
 [params]
 
