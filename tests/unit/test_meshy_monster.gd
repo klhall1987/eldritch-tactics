@@ -111,7 +111,8 @@ func _distance_to_line(p: Vector3, line: Array) -> float:
 
 
 # Given monster.glb, when it's loaded, then it's Meshy's mesh as delivered: one skinned mesh of at least
-# 90,000 triangles (Meshy's has 90,349), 1.65-1.75 m tall with its lowest point at y = 0, facing +Z, with
+# 90,000 triangles (Meshy's has 90,349), 0.8-0.85 m tall (Meshy's 1.70 m scaled about 0.48x, agreed on #162)
+# with its lowest point at y = 0, facing +Z, with
 # Meshy's stray Icosphere not drawn.
 func test_the_meshy_mesh_as_delivered():
 	var monster := _monster()
@@ -139,7 +140,7 @@ func test_the_meshy_mesh_as_delivered():
 			lowest = minf(lowest, y)
 			highest = maxf(highest, y)
 	assert_gte(triangles, 90000, "Meshy's full mesh, at least 90,000 triangles (has %d)" % triangles)
-	assert_between(highest - lowest, 1.65, 1.75, "it's 1.65-1.75 m tall (is %.3f m)" % (highest - lowest))
+	assert_between(highest - lowest, 0.8, 0.85, "it's 0.8-0.85 m tall (is %.3f m)" % (highest - lowest))
 	assert_almost_eq(lowest, 0.0, 0.01, "its lowest point is at y = 0 (is %.3f)" % lowest)
 	var skeleton := _skeleton(monster)
 	if skeleton == null:
