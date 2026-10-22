@@ -40,9 +40,10 @@ their `.import` files) the first time it imports it: commit those too.
     The glb is copied unchanged to `assets/models/characters/character.glb`, and
     `scripts/character_import.gd` fits it to the game at import (drops a stray mesh, folds the rig's
     0.01 scale into the skeleton, names the clips the game plays, splits his body into regions).
-  - **The monster is built with the Creature Creator** (CC BY 4.0; see `art/base/README.md`):
-    `art/blender/characters/monster.py` opens the owner's Creature Creator file (path in `CREATURE_CREATOR`),
-    grows its parts with the tool's `Body Tool`, and exports only the finished, rigged monster.
+  - **The monster is the owner's Meshy model, its mesh and textures as Meshy delivered them** (#160;
+    see `art/base/README.md`, "Meshy"): `art/blender/characters/monster.py` imports it from the `MESHY`
+    folder, renames its rig's bones, moves stray leg skin onto its body, scales it to 0.82 m tall
+    (#162), and makes its clips (#161).
   - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
     colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
