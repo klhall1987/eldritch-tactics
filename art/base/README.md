@@ -24,7 +24,7 @@ OpenGL normal map:
 | `knitted_fleece_diff_1k.jpg`, `knitted_fleece_nor_gl_1k.jpg` | [knitted_fleece](https://polyhaven.com/a/knitted_fleece) (1k) | the cultist's under-robe and bandage wraps (recoloured, with grime and blood painted on) |
 | `denim_fabric_diff_1k.jpg`, `denim_fabric_nor_gl_1k.jpg` | [denim_fabric](https://polyhaven.com/a/denim_fabric) (1k) | the cultist's robe, hood and rags (recoloured, with grime and blood painted on) |
 
-## Meshy (the player character, his clothes and the monster)
+## Meshy (the player character, his clothes, the monster and the garage)
 
 The owner generated the player character, three clothing pieces and the monster with **Meshy**
 (https://www.meshy.ai). They aren't CC0: they were made on a paid Meshy plan, so the owner owns them
@@ -59,6 +59,28 @@ metallic-roughness map, and Meshy's 54-bone rig (`Bone_000` ... `Bone_053`), but
 
 Its vertices and images are Meshy's, unchanged. (Before #160 the monster was built with Joey
 Carlino's Creature Creator, CC BY 4.0; nothing of that is in the game now.)
+
+**The garage's floor, walls, doors and stairs** (#164, #165) are the owner's Meshy basement pieces, in the
+`MESHY` folder as `Meshy_AI_Basement_<piece>_<id>_image-to-3d-texture.glb`. Meshy fit each one to a 1.9 m
+box and gave each a 2048-4096 px colour, normal and metallic-roughness map.
+
+| Piece | In the garage |
+|---|---|
+| `Floor_Tile` | the floor: twelve tiles, each about 2 m square |
+| `Wall_Section` | the two back walls, 2.52 m high |
+| `Wall_Corner` | where the back walls meet |
+| `Garage_Door_` | despite its name, a wall strip with a window in it, above the garage door |
+| `Garage_Door` | the roll-up garage door, in the north wall |
+| `Doorway_Wall` | the doorway in the west wall, between the workbench and the mattress |
+| `Wooden_Door` | the door, closed in that doorway |
+| `Stairs` | the stairs up, along the north wall's east end |
+
+`art/blender/environments/garage.py` builds `assets/models/environments/garage.glb` from them:
+- it reduces each piece once, to at most 40,000 triangles
+- it resizes its maps to 2048 px, exported as JPEG, so the glb stays under GitHub's 100 MB limit
+- it scales each piece as a whole and places copies that share its mesh.
+
+Their shapes are Meshy's.
 
 **The clothes** aren't in the game yet. They're the owner's files, in the folder the `MESHY` path
 points to (set in `.claude/settings.local.json`):

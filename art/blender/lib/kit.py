@@ -598,12 +598,13 @@ def render_previews(model_name, views=VIEWS, size=512, colors="MATERIAL"):
     return paths
 
 
-def export(model_name, kind, previews=True, preview_colors="MATERIAL", animation_mode="NLA_TRACKS"):
+def export(model_name, kind, previews=True, preview_colors="MATERIAL", animation_mode="NLA_TRACKS", **gltf):
     """Writes assets/models/<kind>/<model>.glb, and preview renders unless `previews` is False.
 
     Pass `preview_colors="TEXTURE"` for a textured model, so its previews show its textures. Pass
     `animation_mode="ACTIONS"` (after removing the rig's NLA tracks) to export each clip as its own
-    action: with NLA tracks, Blender 5's exporter can let one clip leak into another.
+    action: with NLA tracks, Blender 5's exporter can let one clip leak into another. Any other
+    keyword goes to Blender's glTF exporter (e.g. `export_image_format="JPEG"`).
     """
     out = ASSETS_DIR / kind / f"{model_name}.glb"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -614,6 +615,7 @@ def export(model_name, kind, previews=True, preview_colors="MATERIAL", animation
         export_apply=True,
         export_animations=True,
         export_animation_mode=animation_mode,
+        **gltf,
     )
     print(f"KIT: exported {out}")
     if previews:

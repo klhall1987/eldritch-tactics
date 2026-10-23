@@ -5,8 +5,9 @@ extends StaticBody3D
 
 ## The garage instance to build collision for.
 @export var garage_path: NodePath
-## Props that block the player character. Smaller clutter (boxes, the TV crate, the bulb) doesn't.
-@export var props: PackedStringArray = ["workbench", "couch", "shelves", "fridge", "mattress", "garage_door"]
+## Props that block the player character (since #165 also the stairs and the wooden door). Smaller
+## clutter (boxes, the TV crate, the bulb) doesn't.
+@export var props: PackedStringArray = ["workbench", "couch", "shelves", "fridge", "mattress", "garage_door", "stairs", "wooden_door"]
 ## How tall every box is. Taller than anyone, so even a low prop like the mattress is a wall to
 ## the player character's capsule rather than a ledge he could slide up onto.
 @export var height := 3.0
@@ -22,8 +23,17 @@ func _ready() -> void:
 	var areas: Array[AABB] = []
 	for prop in props:
 		areas.append(_bounds(garage.find_child(prop, true, false)))
-	for wall in ["wall_west", "wall_north"]:
-		areas.append(_bounds(garage.find_child(wall, true, false)))
+	# Each back wall runs its whole length, but only as thick as its wall sections (#164): the
+	# L-shaped corner piece's bounds would fill the room's corner.
+	for wall in [["wall_west", Vector3.AXIS_X], ["wall_north", Vector3.AXIS_Z]]:
+		var node := garage.find_child(wall[0], true, false)
+		var box := _bounds(node)
+		var sections := node.find_children("wall_section*", "MeshInstance3D", true, false)
+		if not sections.is_empty():
+			var slab := _bounds_of(sections)
+			box.position[wall[1]] = slab.position[wall[1]]
+			box.size[wall[1]] = slab.size[wall[1]]
+		areas.append(box)
 	# The open +X and +Z sides: barriers just outside the floor, running past both corners.
 	var floor_box := _bounds(garage.find_child("floor", true, false))
 	var t := barrier_thickness
@@ -76,6 +86,10 @@ func _bounds(node: Node) -> AABB:
 	var meshes := node.find_children("*", "MeshInstance3D", true, false)
 	if node is MeshInstance3D:
 		meshes.append(node)
+	return _bounds_of(meshes)
+
+
+func _bounds_of(meshes: Array) -> AABB:
 	var box := AABB()
 	for i in meshes.size():
 		var mi := meshes[i] as MeshInstance3D

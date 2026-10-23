@@ -44,8 +44,10 @@ their `.import` files) the first time it imports it: commit those too.
     see `art/base/README.md`, "Meshy"): `art/blender/characters/monster.py` imports it from the `MESHY`
     folder, renames its rig's bones, moves stray leg skin onto its body, scales it to 0.82 m tall
     (#162), and makes its clips (#161).
-  - **Props and environments: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat
-    colors, no textures.
+  - **The garage's floor, walls, doors and stairs are the owner's Meshy basement pieces** (#164,
+    #165; see `art/base/README.md`, "Meshy"). `art/blender/environments/garage.py` reduces each one
+    once and scales it as a whole.
+  - **Props: low-poly PS1 horror.** Flat-shaded primitives (6-8 sided), flat colors, no textures.
   - In both, emission is for things that should glow in the dark (eyes, sigils).
 - **Body types and the shared skeleton** (#150-#154), as in Baldur's Gate 3: every humanoid
   character model uses the **shared skeleton** (the player's dressed Meshy rig, #158: 22 bones from
