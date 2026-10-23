@@ -14,8 +14,9 @@ extends GutTest
 #   and up). The door "stands closed in its opening" when no frame vertex lies inside the door's
 #   outline (shrunk 0.03 m), and the frame comes within 0.05 m of the door's two sides and its top.
 # - "Its long axis runs along the wall": its bounds are longer along that wall than across it.
-# - Walking into a piece: he starts 1.2 m out from its middle, into the room, and walks straight at it
-#   for 4 seconds, as test_character_collision.gd's props do.
+# - Walking into a piece: he starts 1.2 m out from its middle (the stairs: from 0.4 m inside their west
+#   end, agreed on #165), into the room, and walks straight at it for 4 seconds, as
+#   test_character_collision.gd's props do.
 
 const GARAGE_PATH := "res://assets/models/environments/garage.glb"
 const MESHY_SIZES := {
@@ -218,7 +219,10 @@ func test_the_stairs_and_door_block_him():
 		if piece == null:
 			continue
 		var box: AABB = piece.global_transform * piece.get_aabb()
-		var front := Vector3(box.get_center().x if spec[2].x == 0 else box.end.x, 0, box.get_center().z if spec[2].z == 0 else box.end.z)
+		# Out from its middle; the stairs from 0.4 m inside their west end, clear of the monster's touch area
+		# (agreed on #165).
+		var along_x := box.position.x + 0.4 if spec[0] == "stairs" else box.get_center().x
+		var front := Vector3(along_x if spec[2].x == 0 else box.end.x, 0, box.get_center().z if spec[2].z == 0 else box.end.z)
 		(body as CharacterBody3D).global_position = front + spec[2]
 		(body as CharacterBody3D).velocity = Vector3.ZERO
 		await wait_physics_frames(2)

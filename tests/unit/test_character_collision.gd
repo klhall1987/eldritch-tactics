@@ -101,7 +101,8 @@ func test_room_edges_keep_him_on_the_floor():
 	# [edge name, start (on a lane clear of furniture), keys, the edge's coordinate, axis]
 	var edges := [
 		["back wall (-X)", Vector3(-1.0, 0, 1.2), WALK_MINUS_X, footprint.position.x, "x"],
-		["back wall (-Z)", Vector3(-0.5, 0, 0.0), WALK_MINUS_Z, footprint.position.z, "z"],
+		# (-Z: to the garage door, clear of the stairs, agreed on #165.)
+		["back wall (-Z)", Vector3(2.2, 0, 0.0), WALK_MINUS_Z, footprint.position.z, "z"],
 		["open side (+X)", Vector3(1.0, 0, 1.5), WALK_PLUS_X, footprint.end.x, "x"],
 		["open side (+Z)", Vector3(0.5, 0, 0.0), WALK_PLUS_Z, footprint.end.z, "z"],
 	]
@@ -174,8 +175,8 @@ func test_he_slides_along_walls():
 	var body := _body(main)
 	if body == null:
 		return
-	# Press him against the back wall (-Z), clear of the door and the shelves.
-	_place(body, Vector3(0.2, 0, -1.5))
+	# Press him against the back wall (-Z) at the garage door, clear of the stairs (agreed on #165).
+	_place(body, Vector3(3.0, 0, -1.5))
 	await wait_physics_frames(2)
 	_press(WALK_MINUS_Z)
 	await wait_physics_frames(PHYSICS_FPS)
