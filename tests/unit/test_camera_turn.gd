@@ -65,7 +65,8 @@ func _assert_centred(camera: Camera3D, detective: Node3D, when: String) -> void:
 	assert_lte(off.y, size.y * CENTRE_TOLERANCE, "he's centred up-down %s (off by %.1f px)" % [when, off.y])
 
 
-# Holds `action` for `seconds`, following the camera's turn frame by frame; returns the total turn.
+# Holds `action` for `seconds`, following the camera's turn frame by frame; returns the total turn. (It steps
+# with process_frame, exactly one frame: GUT's wait_frames(1) waits two, agreed on #167.)
 func _hold(camera: Camera3D, action: String, seconds: float) -> float:
 	assert_true(InputMap.has_action(action), "the input map has %s" % action)
 	if not InputMap.has_action(action):
@@ -74,12 +75,12 @@ func _hold(camera: Camera3D, action: String, seconds: float) -> float:
 	var last := _yaw(camera)
 	Input.action_press(action)
 	for frame in int(seconds * FPS):
-		await wait_frames(1)
+		await get_tree().process_frame
 		var now := _yaw(camera)
 		turned += wrapf(now - last, -180.0, 180.0)
 		last = now
 	Input.action_release(action)
-	await wait_frames(1)
+	await get_tree().process_frame
 	turned += wrapf(_yaw(camera) - last, -180.0, 180.0)
 	return turned
 
