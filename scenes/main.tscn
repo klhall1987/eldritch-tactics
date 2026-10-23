@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/inventory.gd" id="13_inventory"]
 [ext_resource type="Script" path="res://scripts/inventory_screen.gd" id="18_inventory_screen"]
 [ext_resource type="Script" path="res://scripts/turn_rings.gd" id="20_turn_rings"]
+[ext_resource type="Script" path="res://scripts/wall_cutaway.gd" id="21_wall_cutaway"]
 
 [sub_resource type="Environment" id="Environment_garage"]
 background_mode = 1
@@ -124,6 +125,11 @@ size = 4.0
 far = 100.0
 script = ExtResource("5_follow")
 target_path = NodePath("../Player/Character")
+
+[node name="WallCutaway" type="Node" parent="."]
+script = ExtResource("21_wall_cutaway")
+garage_path = NodePath("../Garage")
+camera_path = NodePath("../Camera3D")
 
 [node name="CombatController" type="Node" parent="."]
 script = ExtResource("9_combat")
