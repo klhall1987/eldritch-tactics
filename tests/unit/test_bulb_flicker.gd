@@ -21,7 +21,8 @@ func after_each():
 	Engine.max_fps = _saved_max_fps
 
 
-# Runs the main scene for SAMPLE_SECONDS and returns {"base": float, "samples": Array[float]}:
+# Runs the main scene for SAMPLE_SECONDS' worth of frames (at TEST_FPS; counted in frames, not on the
+# clock, so it's quick under the test runner's --fixed-fps) and returns {"base": float, "samples": Array[float]}:
 # the bulb light's energy as set in the scene (read before it enters the tree, so before any
 # flicker), then its energy at the start of every frame. Returns {} (after failing) if it can't.
 func _sample_bulb() -> Dictionary:
@@ -41,8 +42,7 @@ func _sample_bulb() -> Dictionary:
 	add_child_autofree(main)
 
 	var samples: Array[float] = []
-	var start := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - start < SAMPLE_SECONDS * 1000.0:
+	while samples.size() < int(SAMPLE_SECONDS * TEST_FPS):
 		await get_tree().process_frame
 		samples.append(light.light_energy)
 	assert_gte(samples.size(), int(SAMPLE_SECONDS * TEST_FPS * 0.5), "enough frames were sampled (%d)" % samples.size())

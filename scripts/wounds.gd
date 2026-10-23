@@ -8,6 +8,7 @@ extends RefCounted
 
 const GROUP := &"wounds"
 const SHORTEST := 0.08
+const SKIN_POINTS := 25000  # about how many of a body's skin points a cut looks at
 const SPACING := 0.06  # cuts stay at least this far apart
 const BESIDE := 0.13  # and a second cut in the same place no further than this from the last
 const FLESH := Color(0.55, 0.06, 0.05)  # the cut's lips
@@ -221,12 +222,19 @@ static func _inset(line: PackedVector3Array, share: float) -> PackedVector3Array
 	return line.slice(trim, line.size() - trim) if line.size() - 2 * trim >= 2 else line
 
 
-## Every vertex of `target`'s skinned meshes as it's drawn now: [[position, bone it follows most], ...].
+## `target`'s skinned meshes' vertices as they're drawn now: [[position, bone it follows most], ...].
+## A dense body (the Meshy models have hundreds of thousands) is sampled evenly down to about SKIN_POINTS,
+## still close enough together to place a cut on.
 static func _skin(target: Node3D, skeleton: Skeleton3D) -> Array:
 	var points := []
-	for mi: MeshInstance3D in target.find_children("*", "MeshInstance3D", true, false):
-		if mi.skin == null or mi.get_node_or_null(mi.skeleton) != skeleton:
-			continue
+	var meshes := target.find_children("*", "MeshInstance3D", true, false).filter(
+		func(mi: MeshInstance3D) -> bool: return mi.skin != null and mi.get_node_or_null(mi.skeleton) == skeleton)
+	var total := 0
+	for mi: MeshInstance3D in meshes:
+		for s in mi.mesh.get_surface_count():
+			total += mi.mesh.surface_get_array_len(s)
+	var stride := maxi(1, total / SKIN_POINTS)
+	for mi: MeshInstance3D in meshes:
 		for s in mi.mesh.get_surface_count():
 			var arrays := mi.mesh.surface_get_arrays(s)
 			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
@@ -235,7 +243,7 @@ static func _skin(target: Node3D, skeleton: Skeleton3D) -> Array:
 			if bones == null or weights == null or vertices.is_empty():
 				continue
 			var per_vertex: int = weights.size() / vertices.size()
-			for i in vertices.size():
+			for i in range(0, vertices.size(), stride):
 				var at := Vector3.ZERO
 				var main_bone := -1
 				var main_weight := 0.0
